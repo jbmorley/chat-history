@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import base64
 import collections
 import enum
+import mimetypes
 import os
+import pathlib
 import random
 import re
 import shutil
@@ -21,6 +24,7 @@ class EventType(enum.Enum):
     EMOJI = "emoji"
     ATTACHMENT = "attachment"
     IMAGE = "image"
+    VIDEO = "video"
 
 
 ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +37,48 @@ Person = collections.namedtuple('Person', ['name', 'is_primary'])
 Message = collections.namedtuple('Message', ['type', 'date', 'username', 'content'])
 Emoji = collections.namedtuple('Emoji', ['type', 'date', 'username', 'content'])
 Attachment = collections.namedtuple('Attachment', ['type', 'date', 'username', 'content'])
-Image = collections.namedtuple('Image', ['type', 'date', 'username', 'content'])
+Image = collections.namedtuple('Image', ['type', 'date', 'username', 'content', 'mimetype'])
+Video = collections.namedtuple('Video', ['type', 'date', 'username', 'content', 'mimetype'])
+
+
+class Attachment(object):
+
+    @property
+    def type(self):
+        return EventType.ATTACHMENT
+
+    def __init__(self, date, username, content):
+        self.date = date
+        self.username = username
+        self.content = content
+
+    @property
+    def mimetype(self):
+        return mimetypes.guess_type(self.content)[0]
+
+    @property
+    def base64_data(self):
+        with open(self.content, "rb") as fh:
+            return base64.b64encode(fh.read()).decode('ascii')
+
+    @property
+    def data_url(self):
+        return f"data:{self.mimetype};base64," + self.base64_data
+
+
+class Image(Attachment):
+
+    @property
+    def type(self):
+        return EventType.IMAGE
+
+
+
+class Video(Attachment):
+
+    @property
+    def type(self):
+        return EventType.VIDEO
 
 
 class Configuration(object):
@@ -53,7 +98,7 @@ def event(directory, date, username, content):
     attachment_match = attachment.match(content)
     if attachment_match:
         attachment_path = os.path.join(directory, attachment_match.group(1))
-        return Attachment(type=EventType.ATTACHMENT, date=date, username=username, content=attachment_path)
+        return Attachment(date=date, username=username, content=attachment_path)
     elif utilities.is_emoji(content):
         return Emoji(type=EventType.EMOJI, date=date, username=username, content=content)
     else:
@@ -119,8 +164,7 @@ def copy_attachments(destination, events):
             _, ext = os.path.splitext(event.content)
             basename = str(uuid.uuid4()) + ext
             shutil.copy(event.content, os.path.join(destination, basename))
-            yield Attachment(type=EventType.ATTACHMENT,
-                             date=event.date,
+            yield Attachment(date=event.date,
                              username=event.username,
                              content=basename)
         else:
@@ -135,8 +179,24 @@ def detect_images(events):
         if event.type == EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             if ext in IMAGE_TYPES:
-                yield Image(type=EventType.IMAGE,
-                            date=event.date,
+                yield Image(date=event.date,
+                            username=event.username,
+                            content=event.content)
+            else:
+                yield event
+        else:
+            yield event
+
+
+VIDEO_TYPES = [".mp4", ".mov"]
+
+
+def detect_videos(events):
+    for event in events:
+        if event.type == EventType.ATTACHMENT:
+            _, ext = os.path.splitext(event.content)
+            if ext in VIDEO_TYPES:
+                yield Video(date=event.date,
                             username=event.username,
                             content=event.content)
             else:
@@ -151,21 +211,15 @@ def main():
     options = parser.parse_args()
 
     configuration = Configuration(options.configuration)
-    if not os.path.isdir(configuration.configuration["output"]):
-        os.makedirs(configuration.configuration["output"])
-
-    # TODO: Move this test somewhere.
-    # with open(os.path.join(ROOT_DIRECTORY, "tests/data/example.txt")) as fh:
-    #     results = list(parse_messages(fh.readlines()))
-    #     for message in results:
-    #         print(message)
+    if os.path.exists(configuration.configuration["output"]):
+        shutil.rmtree(configuration.configuration["output"])
+    os.makedirs(configuration.configuration["output"])
 
     people = People()
     for person in configuration.configuration["people"]:
         people.people[person["identities"][0]] = Person(name=person["name"],
                                                         is_primary=person["primary"] if "primary" in person else False)
 
-    print("Importing sources...")
     for source in configuration.configuration["sources"]:
         chats = os.path.join(source["path"], "_chat.txt")
         with open(chats) as fh:
@@ -173,12 +227,14 @@ def main():
 
     events = copy_attachments(configuration.configuration["output"], events)
     events = detect_images(events)
-    batches = list(group_messages(people, events))
+    events = detect_videos(events)
+    batches = group_messages(people, events)
 
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     template = environment.get_template("messages.html")
-    with open(os.path.join(configuration.configuration["output"], "index.html"), "w") as fh:
-        fh.write(template.render(conversation=batches, EventType=EventType))
+    with utilities.chdir(configuration.configuration["output"]):
+        with open("index.html", "w") as fh:
+            fh.write(template.render(conversation=list(batches), EventType=EventType))
 
 
 if __name__ == '__main__':

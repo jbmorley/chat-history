@@ -7,13 +7,26 @@
                 font-family: Helvetica
             }
 
+            .conversation {
+                margin: auto;
+                max-width: 800px;
+            }
+
+            .images {
+                display: flex;
+                max-width: 100%;
+            }
+
+            .images img {
+                max-width: 100%;
+                border-radius: 4px;
+                height: 100px;
+            }
+
             .batch {
                 display: grid;
                 grid-template-columns: minmax(auto, 10%) 1fr minmax(auto, 10%);
                 grid-gap: 1em;
-                width: 80%;
-                margin: auto;
-                max-width: 800px;
                 margin-bottom: 1em;
             }
 
@@ -70,6 +83,19 @@
     </head>
     <body>
         <div class="conversation">
+
+            <h1>Images</h1>
+
+            <div class="images">
+                {% for batch in conversation %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
+                    <a href="{{ message.content }}" target="_blank">
+                        <img src="{{ message.content }}">
+                    </a>
+                {% endif %}{% endfor %}{% endfor %}
+            </div>
+
+            <h1>Messages</h1>
+
             {% for batch in conversation %}
                 <div class="batch {% if batch.person.is_primary %}outgoing{% else %}incoming{% endif %}">
                     {% if batch.person.is_primary %}
@@ -86,10 +112,15 @@
                                 </div>
                             {% elif message.type == EventType.ATTACHMENT %}
                                 <div>
-                                    {{ message.content }}
+                                    <a href="{{ message.content }}" target="_blank">{{ message.content }}</a>
                                 </div>
                             {% elif message.type == EventType.IMAGE %}
                                 <img src="{{ message.content }}">
+                            {% elif message.type == EventType.VIDEO %}
+                                <video controls>
+                                    <source src="{{ message.content }}" type="{{ message.mimetype }}">
+                                    Your browser does not support the video tag.
+                                </video>
                             {% else %}
                                 <div class="message">
                                     {{ message.content }}
