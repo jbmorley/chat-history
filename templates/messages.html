@@ -17,6 +17,11 @@
                 margin-bottom: 1em;
             }
 
+            .batch img {
+                max-width: 100%;
+                border-radius: 4px;
+            }
+
             .incoming > .messages {
                 text-align: left;
             }
@@ -83,6 +88,8 @@
                                 <div>
                                     {{ message.content }}
                                 </div>
+                            {% elif message.type == EventType.IMAGE %}
+                                <img src="{{ message.content }}">
                             {% else %}
                                 <div class="message">
                                     {{ message.content }}
