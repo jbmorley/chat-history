@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+
+            body {
+                font-family: Helvetica
+            }
+
+            .batch {
+                display: grid;
+                grid-template-columns: minmax(auto, 10%) 1fr minmax(auto, 10%);
+                grid-gap: 1em;
+                width: 80%;
+                margin: auto;
+                max-width: 800px;
+                margin-bottom: 1em;
+            }
+
+            .incoming > .messages {
+                text-align: left;
+            }
+
+            .outgoing > .messages {
+                text-align: right;
+            }
+
+            .message {
+                box-sizing: border-box;
+                display: inline-block;
+                padding: 2px 1em;
+                margin-bottom: 8px;
+                background-color: #027cfe;
+                color: white;
+                border-radius: 4px;
+                text-align: left;
+            }
+
+            .incoming .message {
+                background-color: #e9e8eb;
+                color: black;
+            }
+
+            .incoming .message a {
+                color: black;
+            }
+
+            .outgoing .message a {
+                color: white;
+            }
+
+            .emoji {
+                font-size: 2em;
+            }
+
+            .person {
+                text-align: right;
+            }
+
+            .person.primary {
+                text-align: left;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div class="conversation">
+            {% for batch in conversation %}
+                <div class="batch {% if batch.person.is_primary %}outgoing{% else %}incoming{% endif %}">
+                    {% if batch.person.is_primary %}
+                        <div></div>
+                    {% else %}
+                        <div class="person">{{ batch.person.name }}</div>
+                    {% endif %}
+                    <div class="messages">
+                        {% for message in batch.messages %}
+                            <div>
+                            {% if message.type == EventType.EMOJI %}
+                                <div class="emoji">
+                                    {{ message.content }}
+                                </div>
+                            {% elif message.type == EventType.ATTACHMENT %}
+                                <div>
+                                    {{ message.content }}
+                                </div>
+                            {% else %}
+                                <div class="message">
+                                    {{ message.content }}
+                                </div>
+                            {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if batch.person.is_primary %}
+                        <div class="person primary">{{ batch.person.name }}</div>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </body>
+</html>
