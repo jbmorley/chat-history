@@ -13,7 +13,6 @@
             }
 
             .images {
-                display: flex;
                 max-width: 100%;
             }
 
@@ -88,9 +87,7 @@
 
             <div class="images">
                 {% for batch in conversation %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
-                    <a href="{{ message.content }}" target="_blank">
-                        <img src="{{ message.content }}">
-                    </a>
+                    <a href="{{ message.content }}" target="_blank"><img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
                 {% endif %}{% endfor %}{% endfor %}
             </div>
 

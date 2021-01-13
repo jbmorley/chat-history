@@ -16,6 +16,8 @@ import dateutil.parser
 import jinja2
 import yaml
 
+from PIL import Image as Img
+
 import utilities
 
 
@@ -68,10 +70,13 @@ class Attachment(object):
 
 class Image(Attachment):
 
+    def __init__(self, date, username, content, size):
+        super(Image, self).__init__(date=date, username=username, content=content)
+        self.size = size
+
     @property
     def type(self):
         return EventType.IMAGE
-
 
 
 class Video(Attachment):
@@ -179,9 +184,11 @@ def detect_images(events):
         if event.type == EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             if ext in IMAGE_TYPES:
+                image = Img.open(event.content)
                 yield Image(date=event.date,
                             username=event.username,
-                            content=event.content)
+                            content=event.content,
+                            size=image.size)
             else:
                 yield event
         else:
