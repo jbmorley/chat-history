@@ -10,7 +10,9 @@ import pathlib
 import random
 import re
 import shutil
+import tempfile
 import uuid
+import zipfile
 
 import dateutil.parser
 import jinja2
@@ -94,7 +96,7 @@ class Configuration(object):
             self.configuration = yaml.load(fh, Loader=yaml.SafeLoader)
         directory = os.path.dirname(self.path)
         for source in self.configuration["sources"]:
-            source["path"] = os.path.join(directory, source["path"])
+            source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
         self.configuration["output"] =os.path.join(directory, self.configuration["output"])
 
 
@@ -165,10 +167,12 @@ class People(object):
 def copy_attachments(destination, events):
     for event in events:
         if event.type == EventType.ATTACHMENT:
-            print(f"Copying '{event.content}'...")
             _, ext = os.path.splitext(event.content)
             basename = str(uuid.uuid4()) + ext
-            shutil.copy(event.content, os.path.join(destination, basename))
+            target = os.path.join(destination, basename)
+            print(f"Copying '{event.content}' to '{target}'...")
+            shutil.copy(event.content, target)
+            print("Done.")
             yield Attachment(date=event.date,
                              username=event.username,
                              content=basename)
@@ -179,12 +183,12 @@ def copy_attachments(destination, events):
 IMAGE_TYPES = [".jpg", ".gif"]
 
 
-def detect_images(events):
+def detect_images(directory, events):
     for event in events:
         if event.type == EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             if ext in IMAGE_TYPES:
-                image = Img.open(event.content)
+                image = Img.open(os.path.join(directory, event.content))
                 yield Image(date=event.date,
                             username=event.username,
                             content=event.content,
@@ -228,14 +232,17 @@ def main():
                                                         is_primary=person["primary"] if "primary" in person else False)
 
     for source in configuration.configuration["sources"]:
-        chats = os.path.join(source["path"], "_chat.txt")
-        with open(chats) as fh:
-            events = parse_messages(directory=source["path"], lines=list(fh.readlines()))
+        with tempfile.TemporaryDirectory() as path:
+            with zipfile.ZipFile(source["path"], 'r') as zh:
+                zh.extractall(path)
+            chats = os.path.join(path, "_chat.txt")
+            with open(chats) as fh:
+                events = parse_messages(directory=path, lines=list(fh.readlines()))
+                events = list(copy_attachments(configuration.configuration["output"], events))
 
-    events = copy_attachments(configuration.configuration["output"], events)
-    events = detect_images(events)
+    events = detect_images(configuration.configuration["output"], events)
     events = detect_videos(events)
-    batches = group_messages(people, events)
+    batches = list(group_messages(people, events))
 
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     template = environment.get_template("messages.html")
