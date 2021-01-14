@@ -4,3 +4,4 @@ config.yaml
 output
 index.html
 /build
+/.venv
