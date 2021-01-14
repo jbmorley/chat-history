@@ -52,6 +52,7 @@ class Attachment(object):
         return EventType.ATTACHMENT
 
     def __init__(self, date, username, content):
+        self.id = str(uuid.uuid4())
         self.date = date
         self.username = username
         self.content = content
