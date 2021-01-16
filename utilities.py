@@ -1,7 +1,9 @@
 import contextlib
+import html
 import os
 import re
-import html
+import tempfile
+import zipfile
 
 import emoji
 
@@ -17,6 +19,17 @@ def chdir(path):
         yield
     finally:
         os.chdir(pwd)
+
+
+@contextlib.contextmanager
+def unzip(path):
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        with zipfile.ZipFile(path, 'r') as zh:
+            zh.extractall(temporary_directory)
+        try:
+            yield temporary_directory
+        finally:
+            pass
 
 
 def is_emoji(content):

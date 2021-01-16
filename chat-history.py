@@ -45,6 +45,21 @@ Image = collections.namedtuple('Image', ['type', 'date', 'username', 'content', 
 Video = collections.namedtuple('Video', ['type', 'date', 'username', 'content', 'mimetype'])
 
 
+class Session(object):
+
+    def __init__(self, events):
+        self.id = str(uuid.uuid4())
+        self.events = events
+
+
+class Conversation(object):
+
+    def __init__(self, people, batches):
+        self.id = str(uuid.uuid4())
+        self.people = people
+        self.batches = batches
+
+
 class Attachment(object):
 
     @property
@@ -217,6 +232,19 @@ def detect_videos(events):
             yield event
 
 
+def unique(items):
+    return list(set(items))
+
+
+def whatsapp_export(media_destination_path, path):
+    with utilities.unzip(path) as archive_path:
+        chats = os.path.join(archive_path, "_chat.txt")
+        with open(chats) as fh:
+            events = parse_messages(directory=archive_path, lines=list(fh.readlines()))
+            events = list(copy_attachments(media_destination_path, events))
+    return Session(events=events)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Parse chat logs and generate HTML.")
     parser.add_argument("configuration", help="configuration file")
@@ -232,24 +260,24 @@ def main():
         people.people[person["identities"][0]] = Person(name=person["name"],
                                                         is_primary=person["primary"] if "primary" in person else False)
 
+    conversations = []
     for source in configuration.configuration["sources"]:
-        with tempfile.TemporaryDirectory() as path:
-            with zipfile.ZipFile(source["path"], 'r') as zh:
-                zh.extractall(path)
-            chats = os.path.join(path, "_chat.txt")
-            with open(chats) as fh:
-                events = parse_messages(directory=path, lines=list(fh.readlines()))
-                events = list(copy_attachments(configuration.configuration["output"], events))
-
-    events = detect_images(configuration.configuration["output"], events)
-    events = detect_videos(events)
-    batches = list(group_messages(people, events))
+        session = whatsapp_export(configuration.configuration["output"], source["path"])
+        events = detect_images(configuration.configuration["output"], session.events)
+        events = detect_videos(events)
+        batches = list(group_messages(people, events))
+        conversation = Conversation(people=unique([batch.person for batch in batches]), batches=batches)
+        conversations.append(conversation)
 
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
-    template = environment.get_template("messages.html")
     with utilities.chdir(configuration.configuration["output"]):
+        index_template = environment.get_template("index.html")
         with open("index.html", "w") as fh:
-            fh.write(template.render(conversation=list(batches), EventType=EventType))
+            fh.write(index_template.render(conversations=conversations, EventType=EventType))
+        conversation_template = environment.get_template("conversation.html")
+        for conversation in conversations:
+            with open(f"{conversation.id}.html", "w") as fh:
+                fh.write(conversation_template.render(conversation=conversation.batches, EventType=EventType))
 
 
 if __name__ == '__main__':
