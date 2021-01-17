@@ -2,6 +2,6 @@ chats
 Pipfile.lock
 config.yaml
 output
-index.html
+/index.html
 /build
 /.venv
