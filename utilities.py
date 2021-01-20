@@ -3,6 +3,7 @@ import html
 import os
 import re
 import tempfile
+import unicodedata
 import zipfile
 
 import emoji
@@ -30,6 +31,12 @@ def unzip(path):
             yield temporary_directory
         finally:
             pass
+
+
+# https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python
+def remove_control_characters(s):
+    s = "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
+    return s.replace("\xa0", " ")
 
 
 def is_emoji(content):

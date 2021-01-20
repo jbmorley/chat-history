@@ -129,6 +129,9 @@ class ImportContext(object):
         return self.people.person(identifier=identifier)
 
 
+ENCRYPTION_ANNOUNCEMENT = "Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them."
+
+
 def event(directory, date, person, content):
     attachment = re.compile(r"^\<attached: (.+)\>$")
     attachment_match = attachment.match(content)
@@ -137,6 +140,8 @@ def event(directory, date, person, content):
         return Attachment(date=date, person=person, content=attachment_path)
     elif utilities.is_emoji(content):
         return Emoji(type=EventType.EMOJI, date=date, person=person, content=content)
+    elif content == ENCRYPTION_ANNOUNCEMENT:
+        return None
     else:
         return Message(type=EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
 
@@ -147,7 +152,7 @@ def parse_structure(lines):
     content = ""
     expression = re.compile(r"^\[(\d{2}/\d{2}/\d{4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
     for line in lines:
-        line = line.replace("\u200e", "")  # TODO: Attachments have a non-printing character that breaks the regex.
+        line = utilities.remove_control_characters(line)
         match = expression.match(line)
         if match:
             if date is not None:
@@ -163,7 +168,9 @@ def parse_structure(lines):
 
 def parse_messages(context, directory, lines):
     for (date, username, content) in parse_structure(lines):
-        yield event(directory=directory, date=dateutil.parser.parse(date), person=context.person(identifier=username), content=content)
+        e = event(directory=directory, date=dateutil.parser.parse(date), person=context.person(identifier=username), content=content)
+        if e is not None:
+            yield e
 
 
 def group_messages(people, messages):
@@ -328,7 +335,7 @@ def main():
         with open("index.html", "w") as fh:
             fh.write(conversation_template.render(conversations=conversations, EventType=EventType))
         for conversation in conversations:
-            with open(f"{conversation.id}.html", "w") as fh:
+            with open(f"{conversation.stable_identifier}.html", "w") as fh:
                 fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=EventType))
 
 if __name__ == '__main__':
