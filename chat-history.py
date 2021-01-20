@@ -58,19 +58,6 @@ class Person():
         self.is_primary = is_primary
 
 
-class Conversation(object):
-
-    def __init__(self, people, batches):
-        self.id = str(uuid.uuid4())
-        self.people = people
-        self.batches = batches
-
-    @property
-    def name(self):
-        people = sorted(self.people, key=lambda x: x.name)
-        return ", ".join([person.name for person in people if not person.is_primary])
-
-
 class Event(object):
 
     def __init__(self, date, person):
@@ -257,10 +244,6 @@ def detect_videos(events):
             yield event
 
 
-def hash_identifiers(objects):
-    return ".".join(sorted([o.id for o in objects]))
-
-
 def whatsapp_export(context, media_destination_path, path):
     logging.info("Importing '%s'...", path)
     with utilities.unzip(path) as archive_path:
@@ -275,6 +258,10 @@ def whatsapp_export_directory(context, media_destination_path, path):
     return [whatsapp_export(context, media_destination_path, f) for f in glob.glob(f"{path}/*.zip")]
 
 
+def hash_identifiers(objects):
+    return ".".join(sorted([o.id for o in objects]))
+
+
 def merge_events(events):
     return functools.reduce(operator.concat, events, [])
 
@@ -283,6 +270,11 @@ def merge_sessions(sessions):
     events = merge_events([session.events for session in sessions])
     session = model.Session(events=events)
     return session
+
+
+IMPORTERS = {
+    "whatsapp_ios": whatsapp_export_directory,
+}
 
 
 def main():
@@ -307,7 +299,8 @@ def main():
     for source in configuration.configuration["sources"]:
 
         context = ImportContext(people=people)
-        for session in whatsapp_export_directory(context, configuration.configuration["output"], source["path"]):
+        importer = IMPORTERS[source["format"]]
+        for session in importer(context, configuration.configuration["output"], source["path"]):
             events = detect_images(configuration.configuration["output"], session.events)
             events = list(detect_videos(events))
             sessions.append(model.Session(events=events))
@@ -322,7 +315,7 @@ def main():
     # TODO: Consider doing this at render time.
     for session in sessions:
         batches = list(group_messages(session.people, session.events))
-        conversation = Conversation(people=session.people, batches=batches)
+        conversation = model.Conversation(people=session.people, batches=batches)
         conversations.append(conversation)
 
     # Sort the conversations by name.
