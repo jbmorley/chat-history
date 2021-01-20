@@ -4,12 +4,15 @@ import argparse
 import base64
 import collections
 import enum
+import glob
+import logging
 import mimetypes
 import os
 import pathlib
 import random
 import re
 import shutil
+import sys
 import tempfile
 import uuid
 import zipfile
@@ -21,6 +24,10 @@ import yaml
 from PIL import Image as Img
 
 import utilities
+
+
+verbose = '--verbose' in sys.argv[1:] or '-v' in sys.argv[1:]
+logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 class EventType(enum.Enum):
@@ -113,7 +120,7 @@ class Configuration(object):
         directory = os.path.dirname(self.path)
         for source in self.configuration["sources"]:
             source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
-        self.configuration["output"] =os.path.join(directory, self.configuration["output"])
+        self.configuration["output"] = os.path.join(directory, self.configuration["output"])
 
 
 def event(directory, date, username, content):
@@ -186,9 +193,8 @@ def copy_attachments(destination, events):
             _, ext = os.path.splitext(event.content)
             basename = str(uuid.uuid4()) + ext
             target = os.path.join(destination, basename)
-            print(f"Copying '{event.content}' to '{target}'...")
+            logging.debug("Copying '%s'...", event.content)
             shutil.copy(event.content, target)
-            print("Done.")
             yield Attachment(date=event.date,
                              username=event.username,
                              content=basename)
@@ -237,6 +243,7 @@ def unique(items):
 
 
 def whatsapp_export(media_destination_path, path):
+    logging.info("Importing '%s'...", path)
     with utilities.unzip(path) as archive_path:
         chats = os.path.join(archive_path, "_chat.txt")
         with open(chats) as fh:
@@ -245,8 +252,13 @@ def whatsapp_export(media_destination_path, path):
     return Session(events=events)
 
 
+def whatsapp_export_directory(media_destination_path, path):
+    return [whatsapp_export(media_destination_path, f) for f in glob.glob(f"{path}/*.zip")]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Parse chat logs and generate HTML.")
+    parser.add_argument("--verbose", "-v", action="store_true", default=False, help="verbose logging")
     parser.add_argument("configuration", help="configuration file")
     options = parser.parse_args()
 
@@ -262,12 +274,12 @@ def main():
 
     conversations = []
     for source in configuration.configuration["sources"]:
-        session = whatsapp_export(configuration.configuration["output"], source["path"])
-        events = detect_images(configuration.configuration["output"], session.events)
-        events = detect_videos(events)
-        batches = list(group_messages(people, events))
-        conversation = Conversation(people=unique([batch.person for batch in batches]), batches=batches)
-        conversations.append(conversation)
+        for session in whatsapp_export_directory(configuration.configuration["output"], source["path"]):
+            events = detect_images(configuration.configuration["output"], session.events)
+            events = detect_videos(events)
+            batches = list(group_messages(people, events))
+            conversation = Conversation(people=unique([batch.person for batch in batches]), batches=batches)
+            conversations.append(conversation)
 
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     with utilities.chdir(configuration.configuration["output"]):
