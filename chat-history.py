@@ -312,11 +312,6 @@ def main():
             events = list(detect_videos(events))
             sessions.append(model.Session(events=events))
 
-            # TODO: Consider doing the batching later.
-            # batches = list(group_messages(people, events))
-            # conversation = Conversation(people=utilities.unique([batch.person for batch in batches]), batches=batches)
-            # conversations.append(conversation)
-
     # Merge conversations.
     threads = collections.defaultdict(list)
     for session in sessions:
