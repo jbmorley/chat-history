@@ -5,7 +5,51 @@
         <style>
 
             body {
-                font-family: Helvetica
+                font-family: Helvetica;
+                margin: 0;
+                padding: 0;
+            }
+
+            .sidebar-layout {
+                display: grid;
+                grid-template-columns: minmax(200px, 20%) 1fr;
+                grid-gap: 1em;
+                margin-bottom: 1em;
+            }
+
+            .content {
+                height: 100vh;
+                overflow: scroll;
+            }
+
+            .conversations {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                height: 100vh;
+                overflow: scroll;
+                background-color: #fafafa;
+            }
+
+            .conversations li a {
+                text-decoration: none;
+                color: black;
+                display: block;
+                padding: 1em;
+            }
+
+            .conversations li a:hover {
+                background-color: #eee;
+            }
+
+            .conversations li a.active {
+                background-color: #ddd;
+            }
+
+            .empty {
+                font-size: 2em;
+                color: grey;
+                text-align: center;
             }
 
             .conversation {
@@ -19,7 +63,6 @@
 
             .images img {
                 max-width: 100%;
-                border-radius: 4px;
                 height: 100px;
             }
 
@@ -32,7 +75,6 @@
 
             .batch img {
                 max-width: 100%;
-                border-radius: 4px;
             }
 
             video {
@@ -54,7 +96,6 @@
                 margin-bottom: 8px;
                 background-color: #027cfe;
                 color: white;
-                border-radius: 4px;
                 text-align: left;
             }
 
@@ -86,60 +127,91 @@
         </style>
     </head>
     <body>
-        <div class="conversation">
 
-            <h1>Images</h1>
-
-            <div class="images">
-                {% for batch in conversation %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
-                    <a onclick="location.href='#{{ message.id }}'; return false;" target="_blank"><img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
-                {% endif %}{% endfor %}{% endfor %}
+        <div class="sidebar-layout">
+            <div>
+                <ul class="conversations">
+                    <li>
+                        <a href="index.html">Home</a>
+                    </li>
+                    {% for loop_conversation in conversations %}
+                        <li>
+                            <a href="{{ loop_conversation.id }}.html" class="{% if conversation and loop_conversation.id == conversation.id %}active{% endif %}" target="iframe_a">{{ loop_conversation.name }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
 
-            <h1>Messages</h1>
+            <div class="content">
 
-            {% for batch in conversation %}
-                <div class="batch {% if batch.person.is_primary %}outgoing{% else %}incoming{% endif %}">
-                    {% if batch.person.is_primary %}
-                        <div></div>
-                    {% else %}
-                        <div class="person">{{ batch.person.name }}</div>
-                    {% endif %}
-                    <div class="messages">
-                        {% for message in batch.messages %}
-                            <div>
-                            {% if message.type == EventType.EMOJI %}
-                                <div class="emoji">
-                                    {{ message.content }}
-                                </div>
-                            {% elif message.type == EventType.ATTACHMENT %}
-                                <div>
-                                    <a href="{{ message.content }}" target="_blank">{{ message.content }}</a>
-                                </div>
-                            {% elif message.type == EventType.IMAGE %}
-                                <a id="{{ message.id }}" href="{{ message.content }}">
-                                    <img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
-                                </a>
-                            {% elif message.type == EventType.VIDEO %}
-                                <video controls>
-                                    <source src="{{ message.content }}" type="{{ message.mimetype }}">
-                                    Your browser does not support the video tag.
-                                </video>
-                            {% else %}
-                                <div class="message">
-                                    {{ message.content }}
-                                </div>
-                            {% endif %}
-                            </div>
-                        {% endfor %}
+            {% if conversation %}
+
+                <div class="conversation">
+
+                    <h1>Images</h1>
+
+                    <div class="images">
+                        {% for batch in conversation.batches %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
+                            <a onclick="location.href='#{{ message.id }}'; return false;" target="_blank"><img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
+                        {% endif %}{% endfor %}{% endfor %}
                     </div>
-                    {% if batch.person.is_primary %}
-                        <div class="person primary">{{ batch.person.name }}</div>
-                    {% else %}
-                        <div></div>
-                    {% endif %}
+
+                    <h1>Messages</h1>
+
+                    {% for batch in conversation.batches %}
+                        <div class="batch {% if batch.person.is_primary %}outgoing{% else %}incoming{% endif %}">
+                            {% if batch.person.is_primary %}
+                                <div></div>
+                            {% else %}
+                                <div class="person">{{ batch.person.name }}</div>
+                            {% endif %}
+                            <div class="messages">
+                                {% for message in batch.messages %}
+                                    <div>
+                                    {% if message.type == EventType.EMOJI %}
+                                        <div class="emoji">
+                                            {{ message.content }}
+                                        </div>
+                                    {% elif message.type == EventType.ATTACHMENT %}
+                                        <div>
+                                            <a href="{{ message.content }}" target="_blank">{{ message.content }}</a>
+                                        </div>
+                                    {% elif message.type == EventType.IMAGE %}
+                                        <a id="{{ message.id }}" href="{{ message.content }}">
+                                            <img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
+                                        </a>
+                                    {% elif message.type == EventType.VIDEO %}
+                                        <video controls>
+                                            <source src="{{ message.content }}" type="{{ message.mimetype }}">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    {% else %}
+                                        <div class="message">
+                                            {{ message.content }}
+                                        </div>
+                                    {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if batch.person.is_primary %}
+                                <div class="person primary">{{ batch.person.name }}</div>
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
                 </div>
-            {% endfor %}
+
+                {% else %}
+
+                    <div class="empty">
+                        None
+                    </div>
+
+                {% endif %}
+
+                </div>
+
         </div>
     </body>
 </html>

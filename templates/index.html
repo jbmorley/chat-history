@@ -2,41 +2,16 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <style>
-
-            body {
-                font-family: Helvetica
-                margin: 0;
-            }
-
-            .sidebar-layout {
-                display: grid;
-                grid-template-columns: minmax(10%, 200px) 1fr;
-                grid-gap: 1em;
-                margin-bottom: 1em;
-            }
-
-            .messages {
-                width: 100%;
-                border: 0;
-                margin: 0;
-                padding: 0;
-                height: 100vh;
-            }
-
-        </style>
     </head>
     <body>
-        <div class="sidebar-layout">
-            <ul class="conversations">
+            <ul>
                 {% for conversation in conversations %}
                     <li>
                         {% set name = conversation.people | rejectattr("is_primary") | map(attribute="name") | join(", ") %}
-                        <a href="{{ conversation.id }}.html" target="iframe_a">{{ name }}</a>
+                        <a href="{{ conversation.id }}.html">{{ name }}</a>
                     </li>
                 {% endfor %}
             </ul>
-            <iframe class="messages" src="" name="iframe_a" title="Iframe Example"></iframe>
         </div>
     </body>
 </html>

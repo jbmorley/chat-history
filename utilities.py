@@ -45,3 +45,7 @@ def text_to_html(content):
         return f"<a href=\"{match.group(0)}\" target=\"_blank\">{match.group(0)}</a>"
     content = URL_EXPRESSION.sub(replace, content)
     return "".join([f"<p>{line}</p>" for line in content.split("\n")])
+
+
+def unique(items):
+    return list(set(items))

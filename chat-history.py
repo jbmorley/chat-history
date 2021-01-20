@@ -4,9 +4,11 @@ import argparse
 import base64
 import collections
 import enum
+import functools
 import glob
 import logging
 import mimetypes
+import operator
 import os
 import pathlib
 import random
@@ -23,6 +25,7 @@ import yaml
 
 from PIL import Image as Img
 
+import model
 import utilities
 
 
@@ -42,21 +45,17 @@ ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
 
 
-Batch = collections.namedtuple('Batch', ['person', 'messages'])  # TODO: Rename to events?
-Person = collections.namedtuple('Person', ['name', 'is_primary'])
-
-Message = collections.namedtuple('Message', ['type', 'date', 'username', 'content'])
-Emoji = collections.namedtuple('Emoji', ['type', 'date', 'username', 'content'])
-Attachment = collections.namedtuple('Attachment', ['type', 'date', 'username', 'content'])
-Image = collections.namedtuple('Image', ['type', 'date', 'username', 'content', 'mimetype'])
-Video = collections.namedtuple('Video', ['type', 'date', 'username', 'content', 'mimetype'])
+Batch = collections.namedtuple('Batch', ['person', 'messages'])
+Message = collections.namedtuple('Message', ['type', 'date', 'person', 'content'])
+Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
 
-class Session(object):
+class Person():
 
-    def __init__(self, events):
+    def __init__(self, name, is_primary):
         self.id = str(uuid.uuid4())
-        self.events = events
+        self.name = name
+        self.is_primary = is_primary
 
 
 class Conversation(object):
@@ -66,17 +65,28 @@ class Conversation(object):
         self.people = people
         self.batches = batches
 
+    @property
+    def name(self):
+        people = sorted(self.people, key=lambda x: x.name)
+        return ", ".join([person.name for person in people if not person.is_primary])
 
-class Attachment(object):
+
+class Event(object):
+
+    def __init__(self, date, person):
+        self.id = str(uuid.uuid4())
+        self.date = date
+        self.person = person
+
+
+class Attachment(Event):
 
     @property
     def type(self):
         return EventType.ATTACHMENT
 
-    def __init__(self, date, username, content):
-        self.id = str(uuid.uuid4())
-        self.date = date
-        self.username = username
+    def __init__(self, date, person, content):
+        super().__init__(date=date, person=person)
         self.content = content
 
     @property
@@ -95,8 +105,8 @@ class Attachment(object):
 
 class Image(Attachment):
 
-    def __init__(self, date, username, content, size):
-        super(Image, self).__init__(date=date, username=username, content=content)
+    def __init__(self, date, person, content, size):
+        super(Image, self).__init__(date=date, person=person, content=content)
         self.size = size
 
     @property
@@ -120,19 +130,28 @@ class Configuration(object):
         directory = os.path.dirname(self.path)
         for source in self.configuration["sources"]:
             source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
-        self.configuration["output"] = os.path.join(directory, self.configuration["output"])
+        self.configuration["output"] = os.path.join(directory, os.path.expanduser(self.configuration["output"]))
 
 
-def event(directory, date, username, content):
+class ImportContext(object):
+
+    def __init__(self, people):
+        self.people = people
+
+    def person(self, identifier):
+        return self.people.person(identifier=identifier)
+
+
+def event(directory, date, person, content):
     attachment = re.compile(r"^\<attached: (.+)\>$")
     attachment_match = attachment.match(content)
     if attachment_match:
         attachment_path = os.path.join(directory, attachment_match.group(1))
-        return Attachment(date=date, username=username, content=attachment_path)
+        return Attachment(date=date, person=person, content=attachment_path)
     elif utilities.is_emoji(content):
-        return Emoji(type=EventType.EMOJI, date=date, username=username, content=content)
+        return Emoji(type=EventType.EMOJI, date=date, person=person, content=content)
     else:
-        return Message(type=EventType.MESSAGE, date=date, username=username, content=utilities.text_to_html(content))
+        return Message(type=EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
 
 
 def parse_structure(lines):
@@ -155,23 +174,23 @@ def parse_structure(lines):
         yield (date, username, content)
 
 
-def parse_messages(directory, lines):
+def parse_messages(context, directory, lines):
     for (date, username, content) in parse_structure(lines):
-        yield event(directory=directory, date=dateutil.parser.parse(date), username=username, content=content)
+        yield event(directory=directory, date=dateutil.parser.parse(date), person=context.person(identifier=username), content=content)
 
 
 def group_messages(people, messages):
-    username = None
+    person = None
     items = []
     for message in messages:
-        if username != message.username:
+        if person != message.person:
             if items:
-                yield Batch(person=people.person(username=username), messages=items)
-            username = message.username
+                yield Batch(person=person, messages=items)
+            person = message.person
             items = []
         items.append(message)
     if items:
-        yield Batch(person=people.person(username=username), messages=items)
+        yield Batch(person=person, messages=items)
 
 
 class People(object):
@@ -179,12 +198,12 @@ class People(object):
     def __init__(self):
         self.people = {}
 
-    def person(self, username):
-        if username not in self.people:
+    def person(self, identifier):
+        if identifier not in self.people:
             r = lambda: random.randint(0,255)
-            person = Person(name=username, is_primary=False)
-            self.people[username] = person
-        return self.people[username]
+            person = Person(name=identifier, is_primary=False)
+            self.people[identifier] = person
+        return self.people[identifier]
 
 
 def copy_attachments(destination, events):
@@ -196,7 +215,7 @@ def copy_attachments(destination, events):
             logging.debug("Copying '%s'...", event.content)
             shutil.copy(event.content, target)
             yield Attachment(date=event.date,
-                             username=event.username,
+                             person=event.person,
                              content=basename)
         else:
             yield event
@@ -212,7 +231,7 @@ def detect_images(directory, events):
             if ext in IMAGE_TYPES:
                 image = Img.open(os.path.join(directory, event.content))
                 yield Image(date=event.date,
-                            username=event.username,
+                            person=event.person,
                             content=event.content,
                             size=image.size)
             else:
@@ -230,7 +249,7 @@ def detect_videos(events):
             _, ext = os.path.splitext(event.content)
             if ext in VIDEO_TYPES:
                 yield Video(date=event.date,
-                            username=event.username,
+                            person=event.person,
                             content=event.content)
             else:
                 yield event
@@ -238,22 +257,32 @@ def detect_videos(events):
             yield event
 
 
-def unique(items):
-    return list(set(items))
+def hash_identifiers(objects):
+    return ".".join(sorted([o.id for o in objects]))
 
 
-def whatsapp_export(media_destination_path, path):
+def whatsapp_export(context, media_destination_path, path):
     logging.info("Importing '%s'...", path)
     with utilities.unzip(path) as archive_path:
         chats = os.path.join(archive_path, "_chat.txt")
         with open(chats) as fh:
-            events = parse_messages(directory=archive_path, lines=list(fh.readlines()))
+            events = parse_messages(context=context, directory=archive_path, lines=list(fh.readlines()))
             events = list(copy_attachments(media_destination_path, events))
-    return Session(events=events)
+    return model.Session(events=events)
 
 
-def whatsapp_export_directory(media_destination_path, path):
-    return [whatsapp_export(media_destination_path, f) for f in glob.glob(f"{path}/*.zip")]
+def whatsapp_export_directory(context, media_destination_path, path):
+    return [whatsapp_export(context, media_destination_path, f) for f in glob.glob(f"{path}/*.zip")]
+
+
+def merge_events(events):
+    return functools.reduce(operator.concat, events, [])
+
+
+def merge_sessions(sessions):
+    events = merge_events([session.events for session in sessions])
+    session = model.Session(events=events)
+    return session
 
 
 def main():
@@ -272,25 +301,47 @@ def main():
         people.people[person["identities"][0]] = Person(name=person["name"],
                                                         is_primary=person["primary"] if "primary" in person else False)
 
+    # Run all the importers.
+    sessions = []
     conversations = []
     for source in configuration.configuration["sources"]:
-        for session in whatsapp_export_directory(configuration.configuration["output"], source["path"]):
+
+        context = ImportContext(people=people)
+        for session in whatsapp_export_directory(context, configuration.configuration["output"], source["path"]):
             events = detect_images(configuration.configuration["output"], session.events)
-            events = detect_videos(events)
-            batches = list(group_messages(people, events))
-            conversation = Conversation(people=unique([batch.person for batch in batches]), batches=batches)
-            conversations.append(conversation)
+            events = list(detect_videos(events))
+            sessions.append(model.Session(events=events))
+
+            # TODO: Consider doing the batching later.
+            # batches = list(group_messages(people, events))
+            # conversation = Conversation(people=utilities.unique([batch.person for batch in batches]), batches=batches)
+            # conversations.append(conversation)
+
+    # Merge conversations.
+    threads = collections.defaultdict(list)
+    for session in sessions:
+        threads[hash_identifiers(session.people)].append(session)
+    sessions = [merge_sessions(sessions) for sessions in threads.values()]
+
+    # Generate conversations.
+    # TODO: Consider doing this at render time.
+    for session in sessions:
+        batches = list(group_messages(session.people, session.events))
+        conversation = Conversation(people=session.people, batches=batches)
+        conversations.append(conversation)
+
+    # Sort the conversations by name.
+    conversations = sorted(conversations, key=lambda x: x.name)
 
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     with utilities.chdir(configuration.configuration["output"]):
+        conversation_template = environment.get_template("conversation.html")
         index_template = environment.get_template("index.html")
         with open("index.html", "w") as fh:
-            fh.write(index_template.render(conversations=conversations, EventType=EventType))
-        conversation_template = environment.get_template("conversation.html")
+            fh.write(conversation_template.render(conversations=conversations, EventType=EventType))
         for conversation in conversations:
             with open(f"{conversation.id}.html", "w") as fh:
-                fh.write(conversation_template.render(conversation=conversation.batches, EventType=EventType))
-
+                fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=EventType))
 
 if __name__ == '__main__':
     main()
