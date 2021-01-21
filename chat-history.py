@@ -339,8 +339,10 @@ def main():
 
     people = People()
     for person in configuration.configuration["people"]:
-        people.people[person["identities"][0]] = Person(name=person["name"],
-                                                        is_primary=person["primary"] if "primary" in person else False)
+        p = Person(name=person["name"],
+                   is_primary=person["primary"] if "primary" in person else False)
+        for identity in person["identities"]:
+            people.people[identity] = p
 
     # Run all the importers.
     sessions = []

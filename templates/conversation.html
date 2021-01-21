@@ -158,7 +158,9 @@
 
                 <div class="conversation">
 
-                    <h1>Images</h1>
+                    <h1>{{ conversation.name }}</h1>
+
+                    <h2>Images</h2>
 
                     <div class="images">
                         {% for batch in conversation.batches %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
@@ -166,7 +168,7 @@
                         {% endif %}{% endfor %}{% endfor %}
                     </div>
 
-                    <h1>Messages</h1>
+                    <h2>Messages</h2>
 
                     {% for batch in conversation.batches %}
 
