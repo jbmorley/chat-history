@@ -88,6 +88,12 @@
                 text-align: right;
             }
 
+            .timestamp {
+                color: #aaa;
+                font-size: 0.9em;
+                margin-bottom: 1em;
+            }
+
             .message {
                 box-sizing: border-box;
                 display: inline-block;
@@ -162,6 +168,7 @@
                     <h1>Messages</h1>
 
                     {% for batch in conversation.batches %}
+
                         <div class="batch {% if batch.person.is_primary %}outgoing{% else %}incoming{% endif %}">
                             {% if batch.person.is_primary %}
                                 <div></div>
@@ -169,7 +176,6 @@
                                 <div class="person">{{ batch.person.name }}</div>
                             {% endif %}
                             <div class="messages">
-                                {{ batch.date }}
                                 {% for message in batch.messages %}
                                     <div>
                                     {% if message.type == EventType.EMOJI %}
@@ -195,6 +201,7 @@
                                         </div>
                                     {% endif %}
                                     </div>
+                                    <div class="timestamp">{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}</div>
                                 {% endfor %}
                             </div>
                             {% if batch.person.is_primary %}

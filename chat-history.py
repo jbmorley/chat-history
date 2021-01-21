@@ -45,7 +45,7 @@ ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
 
 
-Batch = collections.namedtuple('Batch', ['person', 'messages'])
+Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
 Message = collections.namedtuple('Message', ['type', 'date', 'person', 'content'])
 Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
@@ -179,12 +179,12 @@ def group_messages(people, messages):
     for message in messages:
         if person != message.person:
             if items:
-                yield Batch(person=person, messages=items)
+                yield Batch(date=items[0].date, person=person, messages=items)
             person = message.person
             items = []
         items.append(message)
     if items:
-        yield Batch(person=person, messages=items)
+        yield Batch(date=items[0].date, person=person, messages=items)
 
 
 class People(object):
@@ -270,7 +270,15 @@ def hash_identifiers(objects):
 
 
 def merge_events(events):
-    return functools.reduce(operator.concat, events, [])
+    events_copy = [list(e) for e in events]
+    result = []
+    while True:
+        events_copy = sorted(events_copy, key=lambda x: x[0].date)
+        result.append(events_copy[0].pop(0))
+        events_copy = [e for e in events_copy if e]
+        if not events_copy:
+            break
+    return result
 
 
 def merge_sessions(sessions):
