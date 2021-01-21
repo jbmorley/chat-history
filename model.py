@@ -12,13 +12,10 @@ class Object(object):
 
 class Session(Object):
 
-    def __init__(self, events):
+    def __init__(self, people, events):
         super().__init__()
+        self.people = people
         self.events = events
-
-    @property
-    def people(self):
-        return utilities.unique([event.person for event in self.events])
 
 
 class Conversation(Object):

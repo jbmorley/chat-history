@@ -3,6 +3,7 @@
 import argparse
 import base64
 import collections
+import datetime
 import enum
 import functools
 import glob
@@ -199,6 +200,14 @@ class People(object):
             self.people[identifier] = person
         return self.people[identifier]
 
+    @property
+    def primary(self):
+        for person in self.people.values():
+            if not person.is_primary:
+                continue
+            return person
+        raise AssertionError("No primary person.")
+
 
 def copy_attachments(destination, events):
     for event in events:
@@ -215,14 +224,14 @@ def copy_attachments(destination, events):
             yield event
 
 
-IMAGE_TYPES = [".jpg", ".gif"]
+IMAGE_TYPES = [".jpg", ".gif", ".png", ".jpeg"]
 
 
 def detect_images(directory, events):
     for event in events:
         if event.type == EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
-            if ext in IMAGE_TYPES:
+            if ext.lower() in IMAGE_TYPES:
                 image = Img.open(os.path.join(directory, event.content))
                 yield Image(date=event.date,
                             person=event.person,
@@ -241,7 +250,7 @@ def detect_videos(events):
     for event in events:
         if event.type == EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
-            if ext in VIDEO_TYPES:
+            if ext.lower() in VIDEO_TYPES:
                 yield Video(date=event.date,
                             person=event.person,
                             content=event.content)
@@ -258,7 +267,7 @@ def whatsapp_export(context, media_destination_path, path):
         with open(chats) as fh:
             events = parse_messages(context=context, directory=archive_path, lines=list(fh.readlines()))
             events = list(copy_attachments(media_destination_path, events))
-    return model.Session(events=events)
+    return model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)
 
 
 def whatsapp_export_directory(context, media_destination_path, path):
@@ -283,12 +292,37 @@ def merge_events(events):
 
 def merge_sessions(sessions):
     events = merge_events([session.events for session in sessions])
-    session = model.Session(events=events)
+    session = model.Session(people=utilities.unique(functools.reduce(operator.concat,
+                                                                     [session.people for session in sessions],
+                                                                     [])),
+                            events=events)
     return session
+
+
+def received_files_import(context, media_destination_path, path):
+    sessions = []
+    for identifier in os.listdir(path):
+        user_path = os.path.join(path, identifier)
+        if not os.path.isdir(user_path):
+            continue
+        logging.info("Importing '%s'...", user_path)
+        attachments = []
+        image_files = utilities.glob(user_path, "*.{png,jpeg,jpg,gif}", re.IGNORECASE)
+        for f in image_files:
+            date = datetime.datetime.fromtimestamp(os.path.getmtime(f))
+            person = context.person(identifier=identifier)
+            attachment = Attachment(date, person, f)
+            attachments.append(attachment)
+        if attachments:
+            events = list(copy_attachments(media_destination_path, attachments))
+            events = sorted(events, key=lambda x: x.date)
+            sessions.append(model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events))
+    return sessions
 
 
 IMPORTERS = {
     "whatsapp_ios": whatsapp_export_directory,
+    "received_files": received_files_import,
 }
 
 
@@ -318,7 +352,7 @@ def main():
         for session in importer(context, configuration.configuration["output"], source["path"]):
             events = detect_images(configuration.configuration["output"], session.events)
             events = list(detect_videos(events))
-            sessions.append(model.Session(events=events))
+            sessions.append(model.Session(people=session.people, events=events))
 
     # Merge conversations.
     threads = collections.defaultdict(list)

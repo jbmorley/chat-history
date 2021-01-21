@@ -11,6 +11,7 @@ python-dateutil = "*"
 jinja2 = "*"
 emoji = "*"
 Pillow = "*"
+braceexpand = "*"
 
 [requires]
 

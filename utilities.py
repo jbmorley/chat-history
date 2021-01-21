@@ -1,4 +1,5 @@
 import contextlib
+import fnmatch
 import html
 import os
 import re
@@ -6,6 +7,7 @@ import tempfile
 import unicodedata
 import zipfile
 
+import braceexpand
 import emoji
 
 
@@ -31,6 +33,20 @@ def unzip(path):
             yield temporary_directory
         finally:
             pass
+
+
+def glob(path, pattern, *options):
+    expressions = [re.compile(fnmatch.translate(p), *options) for p in braceexpand.braceexpand(pattern)]
+    files = os.listdir(path)
+    results = []
+    for f in files:
+        for expression in expressions:
+            if not expression.match(f):
+                continue
+            results.append(f)
+            break
+    results = [os.path.join(path, f) for f in results]
+    return results
 
 
 # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python
