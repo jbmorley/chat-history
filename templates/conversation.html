@@ -135,7 +135,11 @@
                     </li>
                     {% for loop_conversation in conversations %}
                         <li>
-                            <a href="{{ loop_conversation.stable_identifier }}.html" class="{% if conversation and loop_conversation.id == conversation.id %}active{% endif %}" target="iframe_a">{{ loop_conversation.name }}</a>
+                            <a
+                                href="{{ loop_conversation.stable_identifier }}.html"
+                                class="{% if conversation and loop_conversation.id == conversation.id %}active{% endif %}">
+                                {{ loop_conversation.name }}
+                            </a>
                         </li>
                     {% endfor %}
                 </ul>
