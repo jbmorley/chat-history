@@ -243,7 +243,7 @@ def detect_images(directory, events):
             yield event
 
 
-VIDEO_TYPES = [".mp4", ".mov"]
+VIDEO_TYPES = [".mp4", ".mov", ".mpg"]
 
 
 def detect_videos(events):
@@ -307,7 +307,7 @@ def received_files_import(context, media_destination_path, path):
             continue
         logging.info("Importing '%s'...", user_path)
         attachments = []
-        image_files = utilities.glob(user_path, "*.{png,jpeg,jpg,gif}", re.IGNORECASE)
+        image_files = utilities.glob(user_path, "*.{png,jpeg,jpg,gif,mp3,zip,txt,mpg,doc}", re.IGNORECASE)
         for f in image_files:
             date = datetime.datetime.fromtimestamp(os.path.getmtime(f))
             person = context.person(identifier=identifier)
