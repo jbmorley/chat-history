@@ -3,15 +3,16 @@
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 
-
 [packages]
 
-pyyaml = "*"
-python-dateutil = "*"
-jinja2 = "*"
-emoji = "*"
-Pillow = "*"
 braceexpand = "*"
+emoji = "*"
+jinja2 = "*"
+lxml = "*"
+Pillow = "*"
+python-dateutil = "*"
+pytz = "*"
+pyyaml = "*"
 
 [requires]
 

@@ -1,7 +1,22 @@
+import collections
+import enum
 import re
 import uuid
 
 import utilities
+
+
+Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
+Message = collections.namedtuple('Message', ['type', 'date', 'person', 'content'])
+Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
+
+
+class EventType(enum.Enum):
+    MESSAGE = "message"
+    EMOJI = "emoji"
+    ATTACHMENT = "attachment"
+    IMAGE = "image"
+    VIDEO = "video"
 
 
 class Object(object):

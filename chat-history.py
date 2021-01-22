@@ -20,12 +20,12 @@ import tempfile
 import uuid
 import zipfile
 
-import dateutil.parser
 import jinja2
 import yaml
 
 from PIL import Image as Img
 
+import importers
 import model
 import utilities
 
@@ -34,21 +34,8 @@ verbose = '--verbose' in sys.argv[1:] or '-v' in sys.argv[1:]
 logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="[%(levelname)s] %(message)s")
 
 
-class EventType(enum.Enum):
-    MESSAGE = "message"
-    EMOJI = "emoji"
-    ATTACHMENT = "attachment"
-    IMAGE = "image"
-    VIDEO = "video"
-
-
 ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
-
-
-Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
-Message = collections.namedtuple('Message', ['type', 'date', 'person', 'content'])
-Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
 
 class Person():
@@ -71,9 +58,12 @@ class Attachment(Event):
 
     @property
     def type(self):
-        return EventType.ATTACHMENT
+        return model.EventType.ATTACHMENT
 
     def __init__(self, date, person, content):
+        assert isinstance(date, datetime.datetime)
+        assert isinstance(person, Person)
+        assert isinstance(content, str)
         super().__init__(date=date, person=person)
         self.content = content
 
@@ -99,14 +89,14 @@ class Image(Attachment):
 
     @property
     def type(self):
-        return EventType.IMAGE
+        return model.EventType.IMAGE
 
 
 class Video(Attachment):
 
     @property
     def type(self):
-        return EventType.VIDEO
+        return model.EventType.VIDEO
 
 
 class Configuration(object):
@@ -140,11 +130,11 @@ def event(directory, date, person, content):
         attachment_path = os.path.join(directory, attachment_match.group(1))
         return Attachment(date=date, person=person, content=attachment_path)
     elif utilities.is_emoji(content):
-        return Emoji(type=EventType.EMOJI, date=date, person=person, content=content)
+        return model.Emoji(type=model.EventType.EMOJI, date=date, person=person, content=content)
     elif content == ENCRYPTION_ANNOUNCEMENT:
         return None
     else:
-        return Message(type=EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
+        return model.Message(type=model.EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
 
 
 def parse_structure(lines):
@@ -169,7 +159,7 @@ def parse_structure(lines):
 
 def parse_messages(context, directory, lines):
     for (date, username, content) in parse_structure(lines):
-        e = event(directory=directory, date=dateutil.parser.parse(date), person=context.person(identifier=username), content=content)
+        e = event(directory=directory, date=utilities.parse_date(date), person=context.person(identifier=username), content=content)
         if e is not None:
             yield e
 
@@ -180,12 +170,12 @@ def group_messages(people, messages):
     for message in messages:
         if person != message.person:
             if items:
-                yield Batch(date=items[0].date, person=person, messages=items)
+                yield model.Batch(date=items[0].date, person=person, messages=items)
             person = message.person
             items = []
         items.append(message)
     if items:
-        yield Batch(date=items[0].date, person=person, messages=items)
+        yield model.Batch(date=items[0].date, person=person, messages=items)
 
 
 class People(object):
@@ -211,7 +201,7 @@ class People(object):
 
 def copy_attachments(destination, events):
     for event in events:
-        if event.type == EventType.ATTACHMENT:
+        if event.type == model.EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             basename = str(uuid.uuid4()) + ext
             target = os.path.join(destination, basename)
@@ -229,7 +219,7 @@ IMAGE_TYPES = [".jpg", ".gif", ".png", ".jpeg"]
 
 def detect_images(directory, events):
     for event in events:
-        if event.type == EventType.ATTACHMENT:
+        if event.type == model.EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             if ext.lower() in IMAGE_TYPES:
                 image = Img.open(os.path.join(directory, event.content))
@@ -248,7 +238,7 @@ VIDEO_TYPES = [".mp4", ".mov", ".mpg"]
 
 def detect_videos(events):
     for event in events:
-        if event.type == EventType.ATTACHMENT:
+        if event.type == model.EventType.ATTACHMENT:
             _, ext = os.path.splitext(event.content)
             if ext.lower() in VIDEO_TYPES:
                 yield Video(date=event.date,
@@ -282,7 +272,12 @@ def merge_events(events):
     events_copy = [list(e) for e in events]
     result = []
     while True:
-        events_copy = sorted(events_copy, key=lambda x: x[0].date)
+        try:
+            events_copy = sorted(events_copy, key=lambda x: x[0].date)
+        except TypeError as e:
+            for events_list in events_copy:
+                logging.error(events_list[0])
+            raise e
         result.append(events_copy[0].pop(0))
         events_copy = [e for e in events_copy if e]
         if not events_copy:
@@ -309,7 +304,7 @@ def received_files_import(context, media_destination_path, path):
         attachments = []
         image_files = utilities.glob(user_path, "*.{png,jpeg,jpg,gif,mp3,zip,txt,mpg,doc}", re.IGNORECASE)
         for f in image_files:
-            date = datetime.datetime.fromtimestamp(os.path.getmtime(f))
+            date = utilities.ensure_timezone(datetime.datetime.fromtimestamp(os.path.getmtime(f)))
             person = context.person(identifier=identifier)
             attachment = Attachment(date, person, f)
             attachments.append(attachment)
@@ -323,6 +318,7 @@ def received_files_import(context, media_destination_path, path):
 IMPORTERS = {
     "whatsapp_ios": whatsapp_export_directory,
     "received_files": received_files_import,
+    "msn_messenger": importers.msn_messenger_import,
 }
 
 
@@ -377,10 +373,10 @@ def main():
         conversation_template = environment.get_template("conversation.html")
         index_template = environment.get_template("index.html")
         with open("index.html", "w") as fh:
-            fh.write(conversation_template.render(conversations=conversations, EventType=EventType))
+            fh.write(conversation_template.render(conversations=conversations, EventType=model.EventType))
         for conversation in conversations:
             with open(f"{conversation.stable_identifier}.html", "w") as fh:
-                fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=EventType))
+                fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=model.EventType))
 
 if __name__ == '__main__':
     main()
