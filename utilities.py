@@ -1,7 +1,10 @@
 import contextlib
 import datetime
 import fnmatch
+import functools
+import glob as g
 import html
+import operator
 import os
 import re
 import tempfile
@@ -39,17 +42,9 @@ def unzip(path):
 
 
 def glob(path, pattern, *options):
-    expressions = [re.compile(fnmatch.translate(p), *options) for p in braceexpand.braceexpand(pattern)]
-    files = os.listdir(path)
-    results = []
-    for f in files:
-        for expression in expressions:
-            if not expression.match(f):
-                continue
-            results.append(f)
-            break
-    results = [os.path.join(path, f) for f in results]
-    return results
+    if path is not None:
+        pattern = os.path.join(path, pattern)
+    return functools.reduce(operator.concat, [g.glob(p) for p in braceexpand.braceexpand(pattern)], [])
 
 
 # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python

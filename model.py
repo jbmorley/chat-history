@@ -53,4 +53,4 @@ class Conversation(Object):
         stable_identifier = stable_identifier.strip()
         stable_identifier = re.sub(r"[\\\/,\s\+\- ]+", "-", stable_identifier)
         stable_identifier = re.sub(r"\-+", "-", stable_identifier)
-        return stable_identifier
+        return stable_identifier[:100]

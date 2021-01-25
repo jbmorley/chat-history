@@ -251,17 +251,12 @@ def detect_videos(events):
 
 
 def whatsapp_export(context, media_destination_path, path):
-    logging.info("Importing '%s'...", path)
     with utilities.unzip(path) as archive_path:
         chats = os.path.join(archive_path, "_chat.txt")
         with open(chats) as fh:
             events = parse_messages(context=context, directory=archive_path, lines=list(fh.readlines()))
             events = list(copy_attachments(media_destination_path, events))
-    return model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)
-
-
-def whatsapp_export_directory(context, media_destination_path, path):
-    return [whatsapp_export(context, media_destination_path, f) for f in glob.glob(f"{path}/*.zip")]
+    return [model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)]
 
 
 def hash_identifiers(objects):
@@ -302,8 +297,8 @@ def received_files_import(context, media_destination_path, path):
             continue
         logging.info("Importing '%s'...", user_path)
         attachments = []
-        image_files = utilities.glob(user_path, "*.{png,jpeg,jpg,gif,mp3,zip,txt,mpg,doc}", re.IGNORECASE)
-        for f in image_files:
+        files = [os.path.join(user_path, p) for p in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, p))]
+        for f in files:
             date = utilities.ensure_timezone(datetime.datetime.fromtimestamp(os.path.getmtime(f)))
             person = context.person(identifier=identifier)
             attachment = Attachment(date, person, f)
@@ -316,7 +311,7 @@ def received_files_import(context, media_destination_path, path):
 
 
 IMPORTERS = {
-    "whatsapp_ios": whatsapp_export_directory,
+    "whatsapp_ios": whatsapp_export,
     "received_files": received_files_import,
     "msn_messenger": importers.msn_messenger_import,
 }
@@ -344,13 +339,18 @@ def main():
     sessions = []
     conversations = []
     for source in configuration.configuration["sources"]:
-
         context = ImportContext(people=people)
         importer = IMPORTERS[source["format"]]
-        for session in importer(context, configuration.configuration["output"], source["path"]):
-            events = detect_images(configuration.configuration["output"], session.events)
-            events = list(detect_videos(events))
-            sessions.append(model.Session(people=session.people, events=events))
+        paths = utilities.glob(".", source["path"])
+        if not paths:
+            logging.error("Unable to find anything to import for '%s'.", source["path"])
+            exit()
+        for path in paths:
+            logging.info("Importing '%s'...", path)
+            for session in importer(context, configuration.configuration["output"], path):
+                events = detect_images(configuration.configuration["output"], session.events)
+                events = list(detect_videos(events))
+                sessions.append(model.Session(people=session.people, events=events))
 
     # Merge conversations.
     threads = collections.defaultdict(list)
