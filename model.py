@@ -28,16 +28,18 @@ class Object(object):
 
 class Session(Object):
 
-    def __init__(self, people, events):
+    def __init__(self, sources, people, events):
         super().__init__()
+        self.sources = sources
         self.people = people
         self.events = events
 
 
 class Conversation(Object):
 
-    def __init__(self, people, batches):
+    def __init__(self, sources, people, batches):
         super().__init__()
+        self.sources = sources
         self.people = people
         self.batches = batches
 

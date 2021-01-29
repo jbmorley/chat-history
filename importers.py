@@ -79,6 +79,7 @@ def msn_messenger_import(context, media_destination_path, path):
                                         person=context.person(identifier=identity),
                                         content=utilities.text_to_html(replace_emoticons(text))))
         if events:
-            sessions.append(model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary] + [default_person]),
+            sessions.append(model.Session(sources=[path],
+                                          people=utilities.unique([event.person for event in events] + [context.people.primary] + [default_person]),
                                           events=events))
     return sessions

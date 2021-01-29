@@ -256,7 +256,7 @@ def whatsapp_export(context, media_destination_path, path):
         with open(chats) as fh:
             events = parse_messages(context=context, directory=archive_path, lines=list(fh.readlines()))
             events = list(copy_attachments(media_destination_path, events))
-    return [model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)]
+    return [model.Session(sources=[path], people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)]
 
 
 def hash_identifiers(objects):
@@ -282,7 +282,9 @@ def merge_events(events):
 
 def merge_sessions(sessions):
     events = merge_events([session.events for session in sessions])
-    session = model.Session(people=utilities.unique(functools.reduce(operator.concat,
+    sources = functools.reduce(operator.concat, [session.sources for session in sessions], [])
+    session = model.Session(sources=sources,
+                            people=utilities.unique(functools.reduce(operator.concat,
                                                                      [session.people for session in sessions],
                                                                      [])),
                             events=events)
@@ -306,7 +308,9 @@ def received_files_import(context, media_destination_path, path):
         if attachments:
             events = list(copy_attachments(media_destination_path, attachments))
             events = sorted(events, key=lambda x: x.date)
-            sessions.append(model.Session(people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events))
+            sessions.append(model.Session(sources=[path],
+                                          people=utilities.unique([event.person for event in events] + [context.people.primary]),
+                                          events=events))
     return sessions
 
 
@@ -350,7 +354,7 @@ def main():
             for session in importer(context, configuration.configuration["output"], path):
                 events = detect_images(configuration.configuration["output"], session.events)
                 events = list(detect_videos(events))
-                sessions.append(model.Session(people=session.people, events=events))
+                sessions.append(model.Session(sources=session.sources, people=session.people, events=events))
 
     # Merge conversations.
     threads = collections.defaultdict(list)
@@ -362,7 +366,7 @@ def main():
     # TODO: Consider doing this at render time.
     for session in sessions:
         batches = list(group_messages(session.people, session.events))
-        conversation = model.Conversation(people=session.people, batches=batches)
+        conversation = model.Conversation(sources=session.sources, people=session.people, batches=batches)
         conversations.append(conversation)
 
     # Sort the conversations by name.
