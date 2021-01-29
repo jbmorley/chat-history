@@ -4,6 +4,7 @@ import re
 import uuid
 
 import utilities
+import yaml
 
 
 Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
@@ -39,6 +40,13 @@ class Conversation(Object):
         super().__init__()
         self.people = people
         self.batches = batches
+
+    # TODO: Ultimately we should use the person instead to get the configuration.
+    @property
+    def configuration(self):
+        return yaml.dump([{"name": self.name,
+                           "identities": [person.name for person in self.people if not person.is_primary]}],
+                         sort_keys=False)
 
     @property
     def name(self):

@@ -73,7 +73,7 @@ def msn_messenger_import(context, media_destination_path, path):
             text = message.xpath('Text/text()')[0]
             identities = [message.xpath('From/User/@LogonName')[0],
                           message.xpath('From/User/@FriendlyName')[0]]
-            identity = next(s for s in identities if s)
+            identity = str(next(s for s in identities if s))
             events.append(model.Message(type=model.EventType.MESSAGE,
                                         date=date,
                                         person=context.person(identifier=identity),

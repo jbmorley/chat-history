@@ -132,6 +132,13 @@
             }
 
         </style>
+        <script type="text/javascript">
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text);
+            }
+
+        </script>
     </head>
     <body>
 
@@ -147,6 +154,7 @@
                                 href="{{ loop_conversation.stable_identifier }}.html"
                                 class="{% if conversation and loop_conversation.id == conversation.id %}active{% endif %}">
                                 {{ loop_conversation.name }}
+                                <button onclick="copyToClipboard('{{ loop_conversation.configuration | replace("\n", "\\n") | replace("\"", "&quot;") | replace("'", "\\'") }}')">Copy</button>
                             </a>
                         </li>
                     {% endfor %}
