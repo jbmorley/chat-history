@@ -25,7 +25,8 @@ import yaml
 
 from PIL import Image as Img
 
-import importers
+import importers.msn
+import importers.text
 import model
 import utilities
 
@@ -317,7 +318,8 @@ def received_files_import(context, media_destination_path, path):
 IMPORTERS = {
     "whatsapp_ios": whatsapp_export,
     "received_files": received_files_import,
-    "msn_messenger": importers.msn_messenger_import,
+    "msn_messenger": importers.msn.msn_messenger,
+    "text_archive": importers.text.text_archive,
 }
 
 

@@ -55,7 +55,7 @@ def replace_emoticons(text):
     return text
 
 
-def msn_messenger_import(context, media_destination_path, path):
+def msn_messenger(context, media_destination_path, path):
     basename, _ = os.path.splitext(os.path.basename(path))
     default_person = context.person(identifier=basename)
 
