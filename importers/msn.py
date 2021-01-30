@@ -4,55 +4,9 @@ import re
 
 import lxml.etree
 
+import emoticons
 import utilities
 import model
-
-
-EMOTICONS = {
-
-    ":-)": "🙂",
-    ":)": "🙂",
-
-    ":-D": "😀",
-    ":d": "😀",
-
-    ":-O": "😮",
-    ":o": "😮",
-
-    ":-P": "😛",
-    ":p": "😛",
-
-    ";-)": "😉",
-    ";)": "😉",
-
-    ":-S": "😕",
-    ":s": "😕",
-
-    ":-|": "😐",
-    ":|": "😐",
-
-    ":'(": "😢",
-
-    ":-$": "😊",
-    ":$": "😊",
-
-    "({)": "🤗",
-    "(})": "🤗",
-
-    "(T)": "📞",
-
-    "(I)": "💡",
-
-    "(8)": "🎵"
-}
-
-EMOTICON_EXPRESSIONS = {re.compile(re.escape(string), re.IGNORECASE): emoji for (string, emoji) in EMOTICONS.items()}
-
-
-def replace_emoticons(text):
-    for expression, emoji in EMOTICON_EXPRESSIONS.items():
-        text = expression.sub(emoji, text)
-    return text
 
 
 def msn_messenger(context, media_destination_path, path):
@@ -77,7 +31,7 @@ def msn_messenger(context, media_destination_path, path):
             events.append(model.Message(type=model.EventType.MESSAGE,
                                         date=date,
                                         person=context.person(identifier=identity),
-                                        content=utilities.text_to_html(replace_emoticons(text))))
+                                        content=utilities.text_to_html(emoticons.detect(text))))
         if events:
             sessions.append(model.Session(sources=[path],
                                           people=utilities.unique([event.person for event in events] + [context.people.primary] + [default_person]),

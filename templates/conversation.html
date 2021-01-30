@@ -200,7 +200,7 @@
                                             <a href="{{ message.content }}" target="_blank">{{ message.content }}</a>
                                         </div>
                                     {% elif message.type == EventType.IMAGE %}
-                                        <a id="{{ message.id }}" href="{{ message.content }}">
+                                        <a id="{{ message.id }}" href="{{ message.content }}" title="{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}">
                                             <img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
                                         </a>
                                     {% elif message.type == EventType.VIDEO %}
@@ -209,7 +209,7 @@
                                             Your browser does not support the video tag.
                                         </video>
                                     {% else %}
-                                        <div class="message">
+                                        <div class="message" title="{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}">
                                             {{ message.content }}
                                         </div>
                                     {% endif %}

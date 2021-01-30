@@ -5,6 +5,7 @@ import pyparsing as pp
 
 from pyparsing import Combine, Group, Keyword, LineEnd, OneOrMore, Suppress, Word, ZeroOrMore
 
+import emoticons
 import model
 import utilities
 
@@ -164,7 +165,7 @@ def text_archive(context, media_destination_path, path):
                 events.append(model.Message(type=model.EventType.MESSAGE,
                                             date=date,
                                             person=context.person(identifier=identifier),
-                                            content=utilities.text_to_html(message["content"])))
+                                            content=utilities.text_to_html(emoticons.detect(message["content"]))))
             if events:
                 results.append(model.Session(sources=[path],
                                              people=utilities.unique([event.person for event in events] + [context.people.primary]),
