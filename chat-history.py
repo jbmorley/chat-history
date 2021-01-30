@@ -25,6 +25,7 @@ import yaml
 
 from PIL import Image as Img
 
+import importers.ichat
 import importers.msn
 import importers.text
 import model
@@ -320,6 +321,7 @@ IMPORTERS = {
     "received_files": received_files_import,
     "msn_messenger": importers.msn.msn_messenger,
     "text_archive": importers.text.text_archive,
+    "ichat": importers.ichat.ichat,
 }
 
 
