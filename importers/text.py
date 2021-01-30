@@ -54,6 +54,44 @@ def read(path):
     raise AssertionError("Unable to determine the encoding")
 
 
+def is_partial(participant):
+    return participant.startswith("...")
+
+
+class ParticipantMap(object):
+
+    def __init__(self, participants):
+        self.participants = {}
+        for participant in participants:
+            self.participants[participant["name"].strip()] = participant["email"]
+
+    def lookup(self, user):
+        try:
+            return self.participants[user]
+        except KeyError as e:
+
+            # Some users are truncated with an ellipsis.
+            if user.endswith(".."):
+                user = user[:-2]
+
+            # Before we do anything too clever, we see if any of the participants have
+            # names that begin with the partial user.
+            for participant in self.participants.keys():
+                if participant.startswith(user):
+                    return self.participants[participant]
+
+            # Assuming that failed, we need to do the same, slowly trimming down the user and
+            # only matching against known partial participants.
+            while user:
+                user = user[1:]
+                for participant in [participant for participant in self.participants.keys() if participant.startswith("...")]:
+                    if participant[3:].startswith(user):
+                        return self.participants[participant]
+
+            raise e
+
+
+
 def text_archive(context, media_destination_path, path):
 
     content = read(path)
@@ -106,16 +144,26 @@ def text_archive(context, media_destination_path, path):
 
         for session in sessions:
             # print(session["start"])
-            for participant in session["participants"]:
-                pass
-                # print(participant["name"], participant["email"])
+
+            participant_map = ParticipantMap(participants=session["participants"])
+
             events = []
             for message in session["messages"]:
                 date = utilities.parse_date(session["start"] + " " + message["time"])
-                # print(date, message["user"], message["content"])
+                user = message["user"]
+
+                if user == 'The following message could not be delivered to all\r\n           recipients':
+                    continue
+
+                identifier = user
+                try:
+                    identifier = participant_map.lookup(user)
+                except KeyError:
+                    logging.debug("Unable to find email for user '%s'", user)
+
                 events.append(model.Message(type=model.EventType.MESSAGE,
                                             date=date,
-                                            person=context.person(identifier=message["user"]),
+                                            person=context.person(identifier=identifier),
                                             content=utilities.text_to_html(message["content"])))
             if events:
                 results.append(model.Session(sources=[path],
