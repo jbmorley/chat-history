@@ -1,5 +1,7 @@
 import collections
+import datetime
 import enum
+import mimetypes
 import re
 import uuid
 
@@ -20,10 +22,19 @@ class EventType(enum.Enum):
     VIDEO = "video"
 
 
+
 class Object(object):
 
     def __init__(self):
         self.id = str(uuid.uuid4())
+
+
+class Person(Object):
+
+    def __init__(self, name, is_primary):
+        super().__init__()
+        self.name = name
+        self.is_primary = is_primary
 
 
 class Session(Object):
@@ -64,3 +75,56 @@ class Conversation(Object):
         stable_identifier = re.sub(r"[\\\/,\s\+\- ]+", "-", stable_identifier)
         stable_identifier = re.sub(r"\-+", "-", stable_identifier)
         return stable_identifier[:100]
+
+
+class Event(object):
+
+    def __init__(self, date, person):
+        self.id = str(uuid.uuid4())
+        self.date = date
+        self.person = person
+
+
+class Attachment(Event):
+
+    @property
+    def type(self):
+        return EventType.ATTACHMENT
+
+    def __init__(self, date, person, content):
+        assert isinstance(date, datetime.datetime)
+        assert isinstance(person, Person)
+        assert isinstance(content, str)
+        super().__init__(date=date, person=person)
+        self.content = content
+
+    @property
+    def mimetype(self):
+        return mimetypes.guess_type(self.content)[0]
+
+    @property
+    def base64_data(self):
+        with open(self.content, "rb") as fh:
+            return base64.b64encode(fh.read()).decode('ascii')
+
+    @property
+    def data_url(self):
+        return f"data:{self.mimetype};base64," + self.base64_data
+
+
+class Image(Attachment):
+
+    def __init__(self, date, person, content, size):
+        super(Image, self).__init__(date=date, person=person, content=content)
+        self.size = size
+
+    @property
+    def type(self):
+        return EventType.IMAGE
+
+
+class Video(Attachment):
+
+    @property
+    def type(self):
+        return EventType.VIDEO

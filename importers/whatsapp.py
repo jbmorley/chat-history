@@ -1,0 +1,58 @@
+import os
+import re
+
+import model
+import utilities
+
+
+ENCRYPTION_ANNOUNCEMENT = "Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them."
+
+
+def event(directory, date, person, content):
+    attachment = re.compile(r"^\<attached: (.+)\>$")
+    attachment_match = attachment.match(content)
+    if attachment_match:
+        attachment_path = os.path.join(directory, attachment_match.group(1))
+        return model.Attachment(date=date, person=person, content=attachment_path)
+    elif utilities.is_emoji(content):
+        return model.Emoji(type=model.EventType.EMOJI, date=date, person=person, content=content)
+    elif content == ENCRYPTION_ANNOUNCEMENT:
+        return None
+    else:
+        return model.Message(type=model.EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
+
+
+def parse_structure(lines):
+    date = None
+    username = None
+    content = ""
+    expression = re.compile(r"^\[(\d{2}/\d{2}/\d{4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
+    for line in lines:
+        line = utilities.remove_control_characters(line)
+        match = expression.match(line)
+        if match:
+            if date is not None:
+                yield (date, username, content)
+            date = match.group(1)
+            username = match.group(2)
+            content = match.group(3)
+        else:
+            content = content + line
+    if date is not None:
+        yield (date, username, content)
+
+
+def parse_messages(context, directory, lines):
+    for (date, username, content) in parse_structure(lines):
+        e = event(directory=directory, date=utilities.parse_date(date), person=context.person(identifier=username), content=content)
+        if e is not None:
+            yield e
+
+
+def ios(context, media_destination_path, path):
+    with utilities.unzip(path) as archive_path:
+        chats = os.path.join(archive_path, "_chat.txt")
+        with open(chats) as fh:
+            events = parse_messages(context=context, directory=archive_path, lines=list(fh.readlines()))
+            events = list(utilities.copy_attachments(media_destination_path, events))
+    return [model.Session(sources=[path], people=utilities.unique([event.person for event in events] + [context.people.primary]), events=events)]
