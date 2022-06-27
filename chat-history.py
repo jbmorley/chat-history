@@ -58,6 +58,7 @@ logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="[%
 
 
 ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+APPLICATION_DIRECTORY = os.path.join(ROOT_DIRECTORY, "app")
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
 
 
@@ -269,6 +270,10 @@ def main():
     # Sort the conversations by name.
     conversations = sorted(conversations, key=lambda x: x.name)
 
+    # Copy the static application files.
+    shutil.copytree(APPLICATION_DIRECTORY, os.path.join(configuration.configuration["output"], "app"))
+
+    # Render the templates.
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     with utilities.chdir(configuration.configuration["output"]):
         conversation_template = environment.get_template("conversation.html")
