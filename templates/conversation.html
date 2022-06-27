@@ -3,14 +3,8 @@
     <head>
         <meta charset="utf-8">
         <title>{% if conversation %}{{ conversation.name }}{% else %}Message History{% endif %}</title>
-        <link rel="stylesheet" href="app/style.css" />
-        <script type="text/javascript">
-
-            function copyToClipboard(text) {
-                navigator.clipboard.writeText(text);
-            }
-
-        </script>
+        <link rel="stylesheet" href="app/css/style.css" />
+        <script type="text/javascript" src="app/js/utils.js"></script>
     </head>
     <body>
 
