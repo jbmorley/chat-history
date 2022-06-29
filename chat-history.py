@@ -58,7 +58,7 @@ logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="[%
 
 
 ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-APPLICATION_DIRECTORY = os.path.join(ROOT_DIRECTORY, "app")
+STATIC_DIRECTORY = os.path.join(ROOT_DIRECTORY, "static")
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
 
 
@@ -271,7 +271,7 @@ def main():
     conversations = sorted(conversations, key=lambda x: x.name)
 
     # Copy the static application files.
-    shutil.copytree(APPLICATION_DIRECTORY, os.path.join(configuration.configuration["output"], "app"))
+    shutil.copytree(STATIC_DIRECTORY, os.path.join(configuration.configuration["output"], "static"))
 
     # Render the templates.
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
