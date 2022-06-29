@@ -45,10 +45,12 @@ import yaml
 
 from PIL import Image as Img
 
+import importers.files
 import importers.ichat
 import importers.msn
 import importers.text
 import importers.whatsapp
+
 import model
 import utilities
 
@@ -189,35 +191,12 @@ def merge_sessions(sessions):
     return session
 
 
-def received_files_import(context, media_destination_path, path):
-    sessions = []
-    for identifier in os.listdir(path):
-        user_path = os.path.join(path, identifier)
-        if not os.path.isdir(user_path):
-            continue
-        logging.info("Importing '%s'...", user_path)
-        attachments = []
-        files = [os.path.join(user_path, p) for p in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, p))]
-        for f in files:
-            date = utilities.ensure_timezone(datetime.datetime.fromtimestamp(os.path.getmtime(f)))
-            person = context.person(identifier=identifier)
-            attachment = model.Attachment(date, person, f)
-            attachments.append(attachment)
-        if attachments:
-            events = list(utilities.copy_attachments(media_destination_path, attachments))
-            events = sorted(events, key=lambda x: x.date)
-            sessions.append(model.Session(sources=[path],
-                                          people=utilities.unique([event.person for event in events] + [context.people.primary]),
-                                          events=events))
-    return sessions
-
-
 IMPORTERS = {
-    "whatsapp_ios": importers.whatsapp.ios,
-    "received_files": received_files_import,
-    "msn_messenger": importers.msn.msn_messenger,
-    "text_archive": importers.text.text_archive,
     "ichat": importers.ichat.ichat,
+    "msn_messenger": importers.msn.msn_messenger,
+    "received_files": importers.files.received_files_import,
+    "text_archive": importers.text.text_archive,
+    "whatsapp_ios": importers.whatsapp.ios,
 }
 
 
