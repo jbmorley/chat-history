@@ -16,9 +16,11 @@ pipenv install
 chat-history config.yaml
 ```
 
-## Configuration
+The script generates output in `~/.chat-history`. Right now, it creates pre-rendered HTML files; one for each conversation, and a top-level `index.html` which includes a list of conversations to make it easy to select different conversations. In the future, we hope to output processed messages to an intermediate database and use a React app for viewing conversations.
 
-Chat History currently uses a YAML configuration file to describe the location of all the backups to import, their formats, known identities (for threading conversations across different protocols), and the output directory. In the future I'd like to make much of this automatic (or configurable via a GUI) to make the tool more accessible, but this helps get things started.
+### Configuration
+
+Chat History currently uses a YAML configuration file to describe the location of all the backups to import, their formats, and known identities (for threading conversations across different protocols). In the future I'd like to make much of this automatic (or configurable via a GUI) to make the tool more accessible, but this helps get things started.
 
 Example configuration:
 
@@ -44,14 +46,11 @@ people:
       - Inertia
 
   ...
-
-output: "~/Messages"
 ```
 
-### WhatsApp
+The following formats can be used:
 
-```
-path: /path/to/folder/containing/compressed/messages
-format: whatsapp_ios
-```
+- `whatsapp_ios` -- WhatsApp messages in compressed folders as exported from iOS
+
+
 
