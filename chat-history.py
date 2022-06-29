@@ -21,24 +21,15 @@
 # SOFTWARE.
 
 import argparse
-import base64
 import collections
-import datetime
-import enum
 import functools
 import glob
 import logging
-import mimetypes
 import operator
 import os
-import pathlib
 import random
-import re
 import shutil
 import sys
-import tempfile
-import uuid
-import zipfile
 
 import jinja2
 import yaml
