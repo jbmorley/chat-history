@@ -50,7 +50,13 @@ people:
 
 The following formats can be used:
 
-- `whatsapp_ios` -- WhatsApp messages in compressed folders as exported from iOS
+- `whatsapp_ios`
+
+  WhatsApp messages in compressed folders as exported from iOS
+
+- `received_files`
+
+  Import a structured folder of attachments that have been received independently of a conversation. Expects one directory per person containing all received attachments from that person.
 
 
 
