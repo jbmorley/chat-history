@@ -26,7 +26,7 @@ import model
 import utilities
 
 
-def received_files_import(context, media_destination_path, path):
+def import_messages(context, media_destination_path, path):
     sessions = []
     for identifier in os.listdir(path):
         user_path = os.path.join(path, identifier)

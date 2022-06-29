@@ -113,7 +113,7 @@ class ParticipantMap(object):
 
 
 
-def text_archive(context, media_destination_path, path):
+def import_messages(context, media_destination_path, path):
 
     content = read(path)
     # content = utilities.remove_control_characters(content)

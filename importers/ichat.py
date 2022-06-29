@@ -18,5 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-def ichat(context, media_destination_path, path):
+
+def import_messages(context, media_destination_path, path):
     return []

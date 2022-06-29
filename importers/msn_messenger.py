@@ -29,7 +29,7 @@ import utilities
 import model
 
 
-def msn_messenger(context, media_destination_path, path):
+def import_messages(context, media_destination_path, path):
     basename, _ = os.path.splitext(os.path.basename(path))
     default_person = context.person(identifier=basename)
 

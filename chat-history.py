@@ -23,7 +23,7 @@
 import argparse
 import collections
 import functools
-import glob
+import importlib
 import logging
 import operator
 import os
@@ -36,12 +36,6 @@ import yaml
 
 from PIL import Image as Img
 
-import importers.files
-import importers.ichat
-import importers.msn
-import importers.text
-import importers.whatsapp
-
 import model
 import utilities
 
@@ -53,6 +47,7 @@ logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format="[%
 ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIRECTORY = os.path.join(ROOT_DIRECTORY, "static")
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
+IMPORTERS_DIRECTORY = os.path.join(ROOT_DIRECTORY, "importers")
 
 OUTPUT_DATA_DIRECTORY = os.path.expanduser("~/.chat-history/data")
 OUTPUT_ATTACHMENTS_DIRECTORY = os.path.join(OUTPUT_DATA_DIRECTORY, "attachments")
@@ -182,15 +177,6 @@ def merge_sessions(sessions):
     return session
 
 
-IMPORTERS = {
-    "ichat": importers.ichat.ichat,
-    "msn_messenger": importers.msn.msn_messenger,
-    "received_files": importers.files.received_files_import,
-    "text_archive": importers.text.text_archive,
-    "whatsapp_ios": importers.whatsapp.ios,
-}
-
-
 def main():
     parser = argparse.ArgumentParser(description="Parse chat logs and generate HTML.")
     parser.add_argument("--verbose", "-v", action="store_true", default=False, help="verbose logging")
@@ -202,6 +188,15 @@ def main():
         shutil.rmtree(OUTPUT_DATA_DIRECTORY)
     os.makedirs(OUTPUT_DATA_DIRECTORY)
     os.makedirs(OUTPUT_ATTACHMENTS_DIRECTORY)
+
+    # Load the importers.
+    importers = {}
+    for path in utilities.glob(IMPORTERS_DIRECTORY, "*.py"):
+        (module, _) = os.path.splitext(os.path.relpath(path, ROOT_DIRECTORY))
+        name = os.path.basename(module)
+        module = module.replace("/", ".")
+        importlib.import_module(module)
+        importers[name] = sys.modules[module].import_messages
 
     people = People()
     for person in configuration.configuration["people"]:
@@ -215,7 +210,7 @@ def main():
     conversations = []
     for source in configuration.configuration["sources"]:
         context = ImportContext(people=people)
-        importer = IMPORTERS[source["format"]]
+        importer = importers[source["format"]]
         paths = utilities.glob(".", source["path"])
         if not paths:
             logging.error("Unable to find anything to import for '%s'.", source["path"])
