@@ -40,7 +40,7 @@
 
                     <div class="images">
                         {% for batch in conversation.batches %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
-                            <a onclick="location.href='#{{ message.id }}'; return false;" target="_blank"><img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
+                            <a onclick="location.href='#{{ message.id }}'; return false;" target="_blank"><img src="attachments/{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
                         {% endif %}{% endfor %}{% endfor %}
                     </div>
 
@@ -67,11 +67,11 @@
                                         </div>
                                     {% elif message.type == EventType.IMAGE %}
                                         <a id="{{ message.id }}" href="{{ message.content }}" title="{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}">
-                                            <img src="{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
+                                            <img src="attachments/{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
                                         </a>
                                     {% elif message.type == EventType.VIDEO %}
                                         <video controls>
-                                            <source src="{{ message.content }}" type="{{ message.mimetype }}">
+                                            <source src="attachments/{{ message.content }}" type="{{ message.mimetype }}">
                                             Your browser does not support the video tag.
                                         </video>
                                     {% else %}

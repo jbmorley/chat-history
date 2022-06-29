@@ -186,6 +186,7 @@ def merge_sessions(sessions):
     return session
 
 
+# TODO: Extract this.
 def received_files_import(context, media_destination_path, path):
     sessions = []
     for identifier in os.listdir(path):
@@ -211,7 +212,6 @@ def received_files_import(context, media_destination_path, path):
 
 IMPORTERS = {
     "whatsapp_ios": importers.whatsapp.ios,
-    # "whatsapp_android": importers.whatsapp.android,
     "received_files": received_files_import,
     "msn_messenger": importers.msn.msn_messenger,
     "text_archive": importers.text.text_archive,
@@ -226,9 +226,11 @@ def main():
     options = parser.parse_args()
 
     configuration = Configuration(options.configuration)
+    attachments_directory = os.path.join(configuration.configuration["output"], "attachments")
     if os.path.exists(configuration.configuration["output"]):
         shutil.rmtree(configuration.configuration["output"])
     os.makedirs(configuration.configuration["output"])
+    os.makedirs(attachments_directory)
 
     people = People()
     for person in configuration.configuration["people"]:
@@ -249,8 +251,8 @@ def main():
             exit()
         for path in paths:
             logging.info("Importing '%s'...", path)
-            for session in importer(context, configuration.configuration["output"], path):
-                events = detect_images(configuration.configuration["output"], session.events)
+            for session in importer(context, attachments_directory, path):
+                events = detect_images(attachments_directory, session.events)
                 events = list(detect_videos(events))
                 sessions.append(model.Session(sources=session.sources, people=session.people, events=events))
 
