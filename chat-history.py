@@ -186,7 +186,6 @@ def merge_sessions(sessions):
     return session
 
 
-# TODO: Extract this.
 def received_files_import(context, media_destination_path, path):
     sessions = []
     for identifier in os.listdir(path):
