@@ -61,6 +61,10 @@ ROOT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIRECTORY = os.path.join(ROOT_DIRECTORY, "static")
 TEMPLATES_DIRECTORY = os.path.join(ROOT_DIRECTORY, "templates")
 
+OUTPUT_DATA_DIRECTORY = os.path.expanduser("~/.chat-history/data")
+OUTPUT_ATTACHMENTS_DIRECTORY = os.path.join(OUTPUT_DATA_DIRECTORY, "attachments")
+OUTPUT_INDEX_PATH = os.path.join(OUTPUT_DATA_DIRECTORY, "index.html")
+
 
 class Configuration(object):
 
@@ -71,7 +75,6 @@ class Configuration(object):
         directory = os.path.dirname(self.path)
         for source in self.configuration["sources"]:
             source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
-        self.configuration["output"] = os.path.join(directory, os.path.expanduser(self.configuration["output"]))
 
 
 class ImportContext(object):
@@ -225,11 +228,10 @@ def main():
     options = parser.parse_args()
 
     configuration = Configuration(options.configuration)
-    attachments_directory = os.path.join(configuration.configuration["output"], "attachments")
-    if os.path.exists(configuration.configuration["output"]):
-        shutil.rmtree(configuration.configuration["output"])
-    os.makedirs(configuration.configuration["output"])
-    os.makedirs(attachments_directory)
+    if os.path.exists(OUTPUT_DATA_DIRECTORY):
+        shutil.rmtree(OUTPUT_DATA_DIRECTORY)
+    os.makedirs(OUTPUT_DATA_DIRECTORY)
+    os.makedirs(OUTPUT_ATTACHMENTS_DIRECTORY)
 
     people = People()
     for person in configuration.configuration["people"]:
@@ -250,8 +252,8 @@ def main():
             exit()
         for path in paths:
             logging.info("Importing '%s'...", path)
-            for session in importer(context, attachments_directory, path):
-                events = detect_images(attachments_directory, session.events)
+            for session in importer(context, OUTPUT_ATTACHMENTS_DIRECTORY, path):
+                events = detect_images(OUTPUT_ATTACHMENTS_DIRECTORY, session.events)
                 events = list(detect_videos(events))
                 sessions.append(model.Session(sources=session.sources, people=session.people, events=events))
 
@@ -272,18 +274,20 @@ def main():
     conversations = sorted(conversations, key=lambda x: x.name)
 
     # Copy the static application files.
-    shutil.copytree(STATIC_DIRECTORY, os.path.join(configuration.configuration["output"], "static"))
+    shutil.copytree(STATIC_DIRECTORY, os.path.join(OUTPUT_DATA_DIRECTORY, "static"))
 
     # Render the templates.
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
-    with utilities.chdir(configuration.configuration["output"]):
+    with utilities.chdir(OUTPUT_DATA_DIRECTORY):
         conversation_template = environment.get_template("conversation.html")
         index_template = environment.get_template("index.html")
-        with open("index.html", "w") as fh:
+        with open(OUTPUT_INDEX_PATH, "w") as fh:
             fh.write(conversation_template.render(conversations=conversations, EventType=model.EventType))
         for conversation in conversations:
             with open(f"{conversation.stable_identifier}.html", "w") as fh:
                 fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=model.EventType))
+
+    logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
 
 if __name__ == '__main__':
     main()
