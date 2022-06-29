@@ -69,7 +69,7 @@ def parse_messages(context, directory, lines):
             yield e
 
 
-def ios(context, media_destination_path, path):
+def import_messages(context, media_destination_path, path):
     with utilities.unzip(path) as archive_path:
         chats = os.path.join(archive_path, "_chat.txt")
         with open(chats) as fh:
