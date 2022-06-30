@@ -55,6 +55,9 @@ class Person(Object):
         self.name = name
         self.is_primary = is_primary
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Session(Object):
 

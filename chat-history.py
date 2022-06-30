@@ -232,7 +232,6 @@ def main():
     sessions = [merge_sessions(sessions) for sessions in threads.values()]
 
     # Generate conversations.
-    # TODO: Consider doing this at render time.
     for session in sessions:
         batches = list(group_messages(session.people, session.events))
         conversation = model.Conversation(sources=session.sources, people=session.people, batches=batches)
@@ -260,6 +259,8 @@ def main():
     logging.info("Writing messages to database...")
     with store.Store(OUTPUT_DATABASE_PATH) as database:
         with database.transaction() as transaction:
+            for person in set(people.people.values()):
+                transaction.add_person(person)
             for conversation in conversations:
                 for batch in conversation.batches:
                     for message in batch.messages:

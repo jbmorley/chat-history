@@ -39,7 +39,14 @@ def create_initial_tables(cursor):
             id TEXT PRIMARY KEY,
             type TEXT,
             timestamp TIMESTAMP,
+            person TEXT NOT NULL,
             content JSON
+        )
+        """)
+    cursor.execute("""
+        CREATE TABLE people (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
         )
         """)
 
@@ -47,8 +54,12 @@ def create_initial_tables(cursor):
 class Cursor(sqlite3.Cursor):
 
     def add_event(self, event):
-        self.execute("INSERT INTO events VALUES (?, ?, ?, ?)",
-                     (event.id, event.type.value, event.date, event.json()))
+        self.execute("INSERT INTO events VALUES (?, ?, ?, ?, ?)",
+                     (event.id, event.type.value, event.date, event.person.id, event.json()))
+
+    def add_person(self, person):
+        self.execute("INSERT INTO people VALUES (?, ?)",
+                     (person.id, person.name))
 
 
 class Transaction(object):
