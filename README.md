@@ -62,9 +62,41 @@ The following formats can be used:
 
 ## Database
 
-The long-term goal is to import messages into an SQLite database and provide a React-based frontend for viewing the database. So far we don't provide a database viewer, so you will need to use SQLite directly. For example,
+The long-term goal is to import messages into an SQLite database and provide a React-based frontend for viewing the database. So far we don't provide a database viewer, so you will need to use SQLite directly.
 
-```sqlite
-select json_extract(content, '$.content') from events where type='message' and content LIKE '%jonty%';
-```
+For example,
 
+- list all people:
+
+  ```sqlite
+  select * from people;
+  ```
+
+- list all conversations:
+
+  ```sqlite
+  select * from conversations;
+  ```
+
+- list the events in a conversation:
+
+  ```sqlite
+  select * from events where conversation = '8a404813-7ec1-4e73-9300-2138814e34fc';
+  ```
+
+- list the messages in a conversation by person:
+
+  ```sqlite
+  select people.name, json_extract(content, '$.content')
+    from events
+    join people on events.person = people.id
+   where conversation = '8a404813-7ec1-4e73-9300-2138814e34fc' and type = 'message';
+  ```
+
+- search for messages matching a string:
+
+  ```sqlite
+  select json_extract(content, '$.content') from events where type='message' and content LIKE '%jonty%';
+  ```
+
+The schema is very much a work-in-progress and is likely to change as we identify specific needs for the React app.

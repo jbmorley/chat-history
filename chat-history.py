@@ -231,9 +231,10 @@ def main():
             for person in set(people.people.values()):
                 transaction.add_person(person)
             for conversation in conversations:
+                transaction.add_conversation(conversation)
                 for batch in conversation.batches:
                     for event in batch.events:
-                        transaction.add_event(event)
+                        transaction.add_event(event, conversation)
 
     logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
 
