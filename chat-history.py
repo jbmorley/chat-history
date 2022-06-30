@@ -249,7 +249,7 @@ def main():
         with open(OUTPUT_INDEX_PATH, "w") as fh:
             fh.write(conversation_template.render(conversations=conversations, EventType=model.EventType))
         for conversation in conversations:
-            with open(f"{conversation.stable_identifier}.html", "w") as fh:
+            with open(f"{conversation.id}.html", "w") as fh:
                 fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=model.EventType))
 
     logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
