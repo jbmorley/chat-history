@@ -192,6 +192,6 @@ def import_messages(context, media_destination_path, path):
                                              events=events))
 
     except pp.ParseException:
-        logging.error("Unable to parse '%s'.", path)
+        logging.warning("Unable to parse '%s'.", path)
 
     return results

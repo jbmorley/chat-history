@@ -104,15 +104,15 @@ class Store(object):
                            (Metadata.SCHEMA_VERSION, ))
             result = cursor.fetchone()
             schema_version = result[0]
-            logging.info(f"Current schema at version {schema_version}")
+            logging.debug(f"Current schema at version {schema_version}")
             if schema_version >= self.SCHEMA_VERSION:
                 return
             for i in range(schema_version + 1, self.SCHEMA_VERSION + 1):
-                logging.info(f"Performing migration to version {i}...")
+                logging.debug(f"Performing migration to version {i}...")
                 self.MIGRATIONS[i](cursor)
             cursor.execute("UPDATE metadata SET value=? WHERE key=?",
                            (self.SCHEMA_VERSION, Metadata.SCHEMA_VERSION))
-            logging.info(f"Updated schema to version {self.SCHEMA_VERSION}")
+            logging.debug(f"Updated schema to version {self.SCHEMA_VERSION}")
 
     def close(self):
         self.connection.close()

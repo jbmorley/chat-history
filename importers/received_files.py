@@ -32,7 +32,7 @@ def import_messages(context, media_destination_path, path):
         user_path = os.path.join(path, identifier)
         if not os.path.isdir(user_path):
             continue
-        logging.info("Importing '%s'...", user_path)
+        logging.debug("Importing '%s'...", user_path)
         attachments = []
         files = [os.path.join(user_path, p) for p in os.listdir(user_path) if os.path.isfile(os.path.join(user_path, p))]
         for f in files:

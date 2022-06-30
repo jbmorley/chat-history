@@ -208,6 +208,7 @@ def main():
             people.people[identity] = p
 
     # Run all the importers.
+    logging.info("Importing messages...")
     sessions = []
     conversations = []
     for source in configuration.configuration["sources"]:
@@ -218,7 +219,7 @@ def main():
             logging.error("Unable to find anything to import for '%s'.", source["path"])
             exit()
         for path in paths:
-            logging.info("Importing '%s'...", path)
+            logging.debug("Importing '%s'...", path)
             for session in importer(context, OUTPUT_ATTACHMENTS_DIRECTORY, path):
                 events = detect_images(OUTPUT_ATTACHMENTS_DIRECTORY, session.events)
                 events = list(detect_videos(events))
@@ -244,6 +245,7 @@ def main():
     shutil.copytree(STATIC_DIRECTORY, os.path.join(OUTPUT_DATA_DIRECTORY, "static"))
 
     # Render the templates.
+    logging.info("Rendering conversations...")
     environment = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_DIRECTORY))
     with utilities.chdir(OUTPUT_DATA_DIRECTORY):
         conversation_template = environment.get_template("conversation.html")
@@ -255,6 +257,7 @@ def main():
                 fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=model.EventType))
 
     # Write the messages to the database.
+    logging.info("Writing messages to database...")
     with store.Store(OUTPUT_DATABASE_PATH) as database:
         with database.transaction() as transaction:
             for conversation in conversations:
@@ -263,6 +266,7 @@ def main():
                         transaction.add_event(message)
 
     logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
+
 
 if __name__ == '__main__':
     main()
