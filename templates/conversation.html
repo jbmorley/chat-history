@@ -39,8 +39,8 @@
                     <h2>Images</h2>
 
                     <div class="images">
-                        {% for batch in conversation.batches %}{% for message in batch.messages %}{% if message.type == EventType.IMAGE %}
-                            <a onclick="location.href='#{{ message.id }}'; return false;" target="_blank"><img src="attachments/{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}"></a>
+                        {% for batch in conversation.batches %}{% for event in batch.events %}{% if event.type == EventType.IMAGE %}
+                            <a onclick="location.href='#{{ event.id }}'; return false;" target="_blank"><img src="attachments/{{ event.content }}" width="{{ event.width }}" height="{{ event.height }}"></a>
                         {% endif %}{% endfor %}{% endfor %}
                     </div>
 
@@ -55,32 +55,32 @@
                                 <div class="person">{{ batch.person.name }}</div>
                             {% endif %}
                             <div class="messages">
-                                {% for message in batch.messages %}
+                                {% for event in batch.events %}
                                     <div>
-                                    {% if message.type == EventType.EMOJI %}
+                                    {% if event.type == EventType.EMOJI %}
                                         <div class="emoji">
-                                            {{ message.content }}
+                                            {{ event.content }}
                                         </div>
-                                    {% elif message.type == EventType.ATTACHMENT %}
+                                    {% elif event.type == EventType.ATTACHMENT %}
                                         <div>
-                                            <a href="{{ message.content }}" target="_blank">{{ message.content }}</a>
+                                            <a href="{{ event.content }}" target="_blank">{{ event.content }}</a>
                                         </div>
-                                    {% elif message.type == EventType.IMAGE %}
-                                        <a id="{{ message.id }}" href="{{ message.content }}" title="{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}">
-                                            <img src="attachments/{{ message.content }}" width="{{ message.width }}" height="{{ message.height }}">
+                                    {% elif event.type == EventType.IMAGE %}
+                                        <a id="{{ event.id }}" href="{{ event.content }}" title="{{ event.date.strftime('%-d %B %Y, %H:%M:%S') }}">
+                                            <img src="attachments/{{ event.content }}" width="{{ event.width }}" height="{{ event.height }}">
                                         </a>
-                                    {% elif message.type == EventType.VIDEO %}
+                                    {% elif event.type == EventType.VIDEO %}
                                         <video controls>
-                                            <source src="attachments/{{ message.content }}" type="{{ message.mimetype }}">
+                                            <source src="attachments/{{ event.content }}" type="{{ event.mimetype }}">
                                             Your browser does not support the video tag.
                                         </video>
                                     {% else %}
-                                        <div class="message" title="{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}">
-                                            {{ message.content }}
+                                        <div class="message" title="{{ event.date.strftime('%-d %B %Y, %H:%M:%S') }}">
+                                            {{ event.content }}
                                         </div>
                                     {% endif %}
                                     </div>
-                                    <div class="timestamp">{{ message.date.strftime('%-d %B %Y, %H:%M:%S') }}</div>
+                                    <div class="timestamp">{{ event.date.strftime('%-d %B %Y, %H:%M:%S') }}</div>
                                 {% endfor %}
                             </div>
                             {% if batch.person.is_primary %}

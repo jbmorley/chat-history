@@ -30,7 +30,7 @@ import utilities
 import yaml
 
 
-Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
+Batch = collections.namedtuple('Batch', ['date', 'person', 'events'])
 Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
 

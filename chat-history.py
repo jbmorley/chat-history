@@ -66,18 +66,18 @@ class Configuration(object):
             source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
 
 
-def group_messages(people, messages):
+def group_events(people, events):
     person = None
     items = []
-    for message in messages:
-        if person != message.person:
+    for event in events:
+        if person != event.person:
             if items:
-                yield model.Batch(date=items[0].date, person=person, messages=items)
-            person = message.person
+                yield model.Batch(date=items[0].date, person=person, events=items)
+            person = event.person
             items = []
-        items.append(message)
+        items.append(event)
     if items:
-        yield model.Batch(date=items[0].date, person=person, messages=items)
+        yield model.Batch(date=items[0].date, person=person, events=items)
 
 
 IMAGE_TYPES = [".jpg", ".gif", ".png", ".jpeg"]
@@ -202,7 +202,7 @@ def main():
 
     # Generate conversations.
     for session in sessions:
-        batches = list(group_messages(session.people, session.events))
+        batches = list(group_events(session.people, session.events))
         conversation = model.Conversation(sources=session.sources, people=session.people, batches=batches)
         conversations.append(conversation)
 
@@ -232,8 +232,8 @@ def main():
                 transaction.add_person(person)
             for conversation in conversations:
                 for batch in conversation.batches:
-                    for message in batch.messages:
-                        transaction.add_event(message)
+                    for event in batch.events:
+                        transaction.add_event(event)
 
     logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
 
