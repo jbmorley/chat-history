@@ -49,9 +49,7 @@ def create_initial_tables(cursor):
             name TEXT NOT NULL
         )
         """)
-    # TODO: JSON
 
-# actors and sources?
 
 class Cursor(sqlite3.Cursor):
 
