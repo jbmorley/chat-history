@@ -20,19 +20,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import datetime
 import unittest
 
+import pytz
+
 import importers.whatsapp_ios
+import model
 
 
 class TestWhatsApp(unittest.TestCase):
 
-    def test_true(self):
-        self.assertTrue(True)
+    def test_parse_message(self):
+        context = model.ImportContext(people=model.People())
+        messages = importers.whatsapp_ios.parse_messages(context, ".", ["[29/06/2022, 15:25:18] Pavlos Vinieratos: hey hey"])
+        messages = list(messages)
+        self.assertEqual(len(messages), 1)
+        message = messages[0]
+        self.assertEqual(message.date, datetime.datetime(2022, 6, 29, 15, 25, 18).replace(tzinfo=pytz.utc))
+        self.assertEqual(message.content, "<p>hey hey</p>")
 
-    # def test_parse_message(self):
-    #     context = model.ImportContext(people=model.People())
-    #     messages = importers.whatsapp_ios.parse_messages(["[29/06/2022, 15:25:18] Pavlos Vinieratos: hey hey"])
+    def test_parse_message_short_dates(self):
+        context = model.ImportContext(people=model.People())
+        messages = importers.whatsapp_ios.parse_messages(context, ".", ["[29/6/22, 17:26:11] Jason Morley: Swwwwweeeeeeet."])
+        messages = list(messages)
+        self.assertEqual(len(messages), 1)
+        message = messages[0]
+        self.assertEqual(message.date, datetime.datetime(2022, 6, 29, 17, 26, 11).replace(tzinfo=pytz.utc))
+        self.assertEqual(message.content, "<p>Swwwwweeeeeeet.</p>")
 
 
 if __name__ == '__main__':

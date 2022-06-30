@@ -66,3 +66,13 @@ The long-term goal is to import messages into an SQLite database and provide a R
 select json_extract(content, '$.content') from events where type='message' and content LIKE '%jonty%';
 ```
 
+## Development
+
+### Running Tests
+
+Test are run on GitHub pull requests. You can also run them locally as follows:
+
+```bash
+./scripts/test.sh
+```
+
