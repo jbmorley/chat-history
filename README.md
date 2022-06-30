@@ -58,5 +58,11 @@ The following formats can be used:
 
   Import a structured folder of attachments that have been received independently of a conversation. Expects one directory per person containing all received attachments from that person.
 
+## Database
 
+The long-term goal is to import messages into an SQLite database and provide a React-based frontend for viewing the database. So far we don't provide a database viewer, so you will need to use SQLite directly. For example,
+
+```sqlite
+select json_extract(content, '$.content') from events where type='message' and content LIKE '%jonty%';
+```
 

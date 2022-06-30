@@ -37,6 +37,7 @@ import yaml
 from PIL import Image as Img
 
 import model
+import store
 import utilities
 
 
@@ -52,6 +53,7 @@ IMPORTERS_DIRECTORY = os.path.join(ROOT_DIRECTORY, "importers")
 OUTPUT_DATA_DIRECTORY = os.path.expanduser("~/.chat-history/data")
 OUTPUT_ATTACHMENTS_DIRECTORY = os.path.join(OUTPUT_DATA_DIRECTORY, "attachments")
 OUTPUT_INDEX_PATH = os.path.join(OUTPUT_DATA_DIRECTORY, "index.html")
+OUTPUT_DATABASE_PATH = os.path.join(OUTPUT_DATA_DIRECTORY, "messages.sqlite")
 
 
 class Configuration(object):
@@ -251,6 +253,14 @@ def main():
         for conversation in conversations:
             with open(f"{conversation.id}.html", "w") as fh:
                 fh.write(conversation_template.render(conversations=conversations, conversation=conversation, EventType=model.EventType))
+
+    # Write the messages to the database.
+    with store.Store(OUTPUT_DATABASE_PATH) as database:
+        with database.transaction() as transaction:
+            for conversation in conversations:
+                for batch in conversation.batches:
+                    for message in batch.messages:
+                        transaction.add_event(message)
 
     logging.info("Chat history written to '%s'.", OUTPUT_INDEX_PATH)
 

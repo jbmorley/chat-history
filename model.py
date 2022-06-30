@@ -21,6 +21,7 @@
 import collections
 import datetime
 import enum
+import json
 import mimetypes
 import re
 import uuid
@@ -30,7 +31,6 @@ import yaml
 
 
 Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
-Message = collections.namedtuple('Message', ['type', 'date', 'person', 'content'])
 Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
 
@@ -40,7 +40,6 @@ class EventType(enum.Enum):
     ATTACHMENT = "attachment"
     IMAGE = "image"
     VIDEO = "video"
-
 
 
 class Object(object):
@@ -93,6 +92,29 @@ class Event(object):
         self.id = str(uuid.uuid4())
         self.date = date
         self.person = person
+
+    def json(self):
+        return json.dumps({
+            "type": self.type.value,
+            "date": self.date.isoformat(),
+            "person": self.person.id,
+        })
+
+
+class Message(Event):
+
+    def __init__(self, type, date, person, content):
+        super().__init__(date, person)
+        self.type = type
+        self.content = content
+
+    def json(self):
+        return json.dumps({
+            "type": self.type.value,
+            "date": self.date.isoformat(),
+            "person": self.person.id,
+            "content": self.content
+        })
 
 
 class Attachment(Event):
