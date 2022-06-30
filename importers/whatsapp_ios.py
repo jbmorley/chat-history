@@ -46,7 +46,7 @@ def parse_structure(lines):
     date = None
     username = None
     content = ""
-    expression = re.compile(r"^\[(\d{2}/\d{2}/\d{4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
+    expression = re.compile(r"^\[(\d{2}/\d{1,2}/\d{2,4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
     for line in lines:
         line = utilities.remove_control_characters(line)
         match = expression.match(line)

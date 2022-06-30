@@ -27,7 +27,6 @@ import importlib
 import logging
 import operator
 import os
-import random
 import shutil
 import sys
 
@@ -67,15 +66,6 @@ class Configuration(object):
             source["path"] = os.path.join(directory, os.path.expanduser(source["path"]))
 
 
-class ImportContext(object):
-
-    def __init__(self, people):
-        self.people = people
-
-    def person(self, identifier):
-        return self.people.person(identifier=identifier)
-
-
 def group_messages(people, messages):
     person = None
     items = []
@@ -88,27 +78,6 @@ def group_messages(people, messages):
         items.append(message)
     if items:
         yield model.Batch(date=items[0].date, person=person, messages=items)
-
-
-class People(object):
-
-    def __init__(self):
-        self.people = {}
-
-    def person(self, identifier):
-        if identifier not in self.people:
-            r = lambda: random.randint(0,255)
-            person = model.Person(name=identifier, is_primary=False)
-            self.people[identifier] = person
-        return self.people[identifier]
-
-    @property
-    def primary(self):
-        for person in self.people.values():
-            if not person.is_primary:
-                continue
-            return person
-        raise AssertionError("No primary person.")
 
 
 IMAGE_TYPES = [".jpg", ".gif", ".png", ".jpeg"]
@@ -200,7 +169,7 @@ def main():
         importlib.import_module(module)
         importers[name] = sys.modules[module].import_messages
 
-    people = People()
+    people = model.People()
     for person in configuration.configuration["people"]:
         p = model.Person(name=person["name"],
                          is_primary=person["primary"] if "primary" in person else False)
@@ -212,7 +181,7 @@ def main():
     sessions = []
     conversations = []
     for source in configuration.configuration["sources"]:
-        context = ImportContext(people=people)
+        context = model.ImportContext(people=people)
         importer = importers[source["format"]]
         paths = utilities.glob(".", source["path"])
         if not paths:
