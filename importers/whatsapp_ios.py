@@ -42,7 +42,6 @@ def event(directory, date, person, content):
         return model.Message(type=model.EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
 
 
-# TODO: Fail gracefully
 def parse_structure(lines):
     date = None
     username = None
