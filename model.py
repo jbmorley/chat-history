@@ -34,6 +34,35 @@ Batch = collections.namedtuple('Batch', ['date', 'person', 'messages'])
 Emoji = collections.namedtuple('Emoji', ['type', 'date', 'person', 'content'])
 
 
+class ImportContext(object):
+
+    def __init__(self, people):
+        self.people = people
+
+    def person(self, identifier):
+        return self.people.person(identifier=identifier)
+
+
+class People(object):
+
+    def __init__(self):
+        self.people = {}
+
+    def person(self, identifier):
+        if identifier not in self.people:
+            person = Person(name=identifier, is_primary=False)
+            self.people[identifier] = person
+        return self.people[identifier]
+
+    @property
+    def primary(self):
+        for person in self.people.values():
+            if not person.is_primary:
+                continue
+            return person
+        raise AssertionError("No primary person.")
+
+
 class EventType(enum.Enum):
     MESSAGE = "message"
     EMOJI = "emoji"

@@ -42,11 +42,12 @@ def event(directory, date, person, content):
         return model.Message(type=model.EventType.MESSAGE, date=date, person=person, content=utilities.text_to_html(content))
 
 
+# TODO: Fail gracefully
 def parse_structure(lines):
     date = None
     username = None
     content = ""
-    expression = re.compile(r"^\[(\d{2}/\d{2}/\d{4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
+    expression = re.compile(r"^\[(\d{2}/\d{1,2}/\d{2,4}, \d{2}:\d{2}:\d{2})\] (.+?): (.+)")
     for line in lines:
         line = utilities.remove_control_characters(line)
         match = expression.match(line)

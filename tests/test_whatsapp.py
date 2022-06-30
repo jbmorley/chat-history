@@ -22,11 +22,17 @@
 
 import unittest
 
+import importers.whatsapp_ios
+
 
 class TestWhatsApp(unittest.TestCase):
 
     def test_true(self):
         self.assertTrue(True)
+
+    # def test_parse_message(self):
+    #     context = model.ImportContext(people=model.People())
+    #     messages = importers.whatsapp_ios.parse_messages(["[29/06/2022, 15:25:18] Pavlos Vinieratos: hey hey"])
 
 
 if __name__ == '__main__':
