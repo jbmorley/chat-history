@@ -2,6 +2,8 @@
 
 Import chat histories in multiple formats and generate searchable output
 
+![Screenshot of the Chat History HTML output in Firefox](screenshot.png)
+
 ## Installation
 
 ```bash
@@ -64,15 +66,5 @@ The long-term goal is to import messages into an SQLite database and provide a R
 
 ```sqlite
 select json_extract(content, '$.content') from events where type='message' and content LIKE '%jonty%';
-```
-
-## Development
-
-### Running Tests
-
-Test are run on GitHub pull requests. You can also run them locally as follows:
-
-```bash
-./scripts/test.sh
 ```
 
