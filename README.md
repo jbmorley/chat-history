@@ -1,5 +1,7 @@
 # Chat History
 
+[![Test](https://github.com/jbmorley/chat-history/actions/workflows/test.yaml/badge.svg)](https://github.com/jbmorley/chat-history/actions/workflows/test.yaml)
+
 Import chat histories in multiple formats and generate searchable output
 
 ![Screenshot of the Chat History HTML output in Firefox](screenshot.png)
