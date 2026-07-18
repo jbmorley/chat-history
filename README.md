@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> 
+> This project has been archived and will not be maintained or developed further.
+
 # Chat History
 
 [![Test](https://github.com/jbmorley/chat-history/actions/workflows/test.yaml/badge.svg)](https://github.com/jbmorley/chat-history/actions/workflows/test.yaml)
